@@ -134,8 +134,8 @@ import ViperE45 from "../../assets/skills/vipere45.svg"
 import ViperE145 from "../../assets/skills/vipere145.svg"
 
 import IconYoru from "../../assets/skills/iconyoru.svg"
-import YoruE from "../../assets/skills/Yorue.svg"
-import YoruQ from "../../assets/skills/Yoruq.svg" 
+import YoruE from "../../assets/skills/yorue.svg"
+import YoruQ from "../../assets/skills/yoruq.svg" 
 import YoruC from "../../assets/skills/yoruc.svg"
 
 

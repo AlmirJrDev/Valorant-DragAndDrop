@@ -2,7 +2,7 @@ import styled from "styled-components";
 
 export const FooterBar = styled.footer`
     background: #232323;
-    margin-top: 750px;
+    
     height: 450px;
 
     display: grid;
@@ -19,9 +19,18 @@ export const FooterBar = styled.footer`
 `
 
 export const ImgBar = styled.div`
+height: 660px;
+display: grid ;
+grid-template-columns: repeat(8, 30px);
+  grid-template-rows: repeat(20);
 
-display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
+
+
+ img{
+  
+  cursor: move;
+
+
+ }
+
 `

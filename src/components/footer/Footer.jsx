@@ -35,6 +35,9 @@ import fadeult from "../../assets/agents/fadeult.svg"
 import AstraSmoke from "../../assets/skills/astrasmoke.svg"
 import AstraC from "../../assets/skills/astrac.svg"
 import Astra0 from "../../assets/skills/astra0.svg"
+import AstraUlt90 from "../../assets/skills/astrault90.svg"
+import AstraUlt45 from "../../assets/skills/astrault45.svg"
+import AstraUlt145 from "../../assets/skills/astrault145.svg"
 import AstraQ from "../../assets/skills/astraq.svg"
 import IconAstra from "../../assets/skills/iconastra.svg"
 
@@ -70,6 +73,75 @@ import CypherE from "../../assets/skills/cyphere.svg"
 import CypherC from "../../assets/skills/cypherc.svg"
 import IconCypher from "../../assets/skills/iconcypher.svg"
 
+import FadeE from "../../assets/skills/fadee.svg"
+import IconFade from "../../assets/skills/iconfade.svg"
+
+import HarborUlt from "../../assets/skills/harborult.svg"
+import HarborSmoke from "../../assets/skills/harborsmoke.svg"
+import IconHarbor from "../../assets/skills/iconharbor.svg"
+
+import JettSmoke from "../../assets/skills/jettsmoke.svg"
+import JettE from "../../assets/skills/jette.svg"
+import IconJett from "../../assets/skills/iconjett.svg"
+
+import KayoE from "../../assets/skills/kayoe.svg"
+import KayoQ from "../../assets/skills/kayoq.svg"
+import KayoC from "../../assets/skills/kayoc.svg"
+import IconKayo from "../../assets/skills/iconkayo.svg"
+
+import KillJoyE from "../../assets/skills/killjoye.svg"
+import KillJoyQ from "../../assets/skills/killjoyq.svg"
+import KillJoyC from "../../assets/skills/killjoyc.svg"
+import KillJoyUlt from "../../assets/skills/killjoyult.svg"
+import IconKillJoy from "../../assets/skills/iconkilljoy.svg"
+
+import IconNeon from "../../assets/skills/iconneon.svg"
+
+import IconOmen from "../../assets/skills/iconomen.svg"
+import OmenQ from "../../assets/skills/omenq.svg"
+import OmenSmoke from "../../assets/skills/omensmoke.svg"
+import OmenUlt from "../../assets/skills/omenult.svg"
+
+import IconPhoenix from "../../assets/skills/iconphoenix.svg"
+
+import IconRaze from "../../assets/skills/iconraze.svg"
+import RazeQ from "../../assets/skills/razeq.svg"
+import RazeE from "../../assets/skills/razee.svg"
+
+import IconReyna from "../../assets/skills/iconreyna.svg"
+import ReynaQ from "../../assets/skills/reynaq.svg"
+
+import IconSage from "../../assets/skills/iconsage.svg"
+import SageC90 from "../../assets/skills/sagec90.svg"
+import SageC0 from "../../assets/skills/sagec0.svg"
+import SageQ from "../../assets/skills/sageq.svg"
+
+import IconSkye from "../../assets/skills/iconskye.svg"
+import SkyeE from "../../assets/skills/skyee.svg"
+import SkyeQ from "../../assets/skills/skyeq.svg"
+
+import IconSova from "../../assets/skills/iconsova.svg"
+import SovaQ from "../../assets/skills/sovaq.svg"
+import SovaC from "../../assets/skills/sovac.svg"
+import SovaE from "../../assets/skills/sovae.svg"
+
+import IconViper from "../../assets/skills/iconviper.svg"
+import ViperC from "../../assets/skills/viperc.svg"
+import ViperQ from "../../assets/skills/viperq.svg"
+import ViperE0 from "../../assets/skills/vipere0.svg"
+import ViperE90 from "../../assets/skills/vipere90.svg"
+import ViperE45 from "../../assets/skills/vipere45.svg"
+import ViperE145 from "../../assets/skills/vipere145.svg"
+
+import IconYoru from "../../assets/skills/iconyoru.svg"
+import YoruE from "../../assets/skills/Yorue.svg"
+import YoruQ from "../../assets/skills/Yoruq.svg" 
+import YoruC from "../../assets/skills/yoruc.svg"
+
+
+
+
+
 import { MainBar } from "../main/main"
 
 const agents = {
@@ -78,25 +150,25 @@ const agents = {
     Brimstone: [IconBrim, BrimSmoke, BrimSmoke, BrimSmoke, BrimUlt, BrimQ, BrimC],
     chamber: [IconChamber, ChamberE, ChamberC],
     cypher: [IconCypher,CypherQ, CypherQ, CypherC, CypherC, CypherE],
-    fade: [Breach, Breach, Breach, Breach],
-    harbor: [Breach, Breach, Breach, Breach],
-    jett: [Breach, Breach, Breach, Breach],
-    kayo: [Breach, Breach, Breach, Breach],
-    killjoy: [Breach, Breach, Breach, Breach],
-    neon: [Breach, Breach, Breach, Breach],
-    omen: [Breach, Breach, Breach, Breach],
-    phoenix: [Breach, Breach, Breach, Breach],
-    raze: [Breach, Breach, Breach, Breach],
-    reyna: [Breach, Breach, Breach, Breach],
-    sage: [Breach, Breach, Breach, Breach],
-    skye: [Breach, Breach, Breach, Breach],
-    sova: [Breach, Breach, Breach, Breach],
-    viper: [Breach, Breach, Breach, Breach],
-    yoru: [Breach, Breach, Breach, Breach],
+    fade: [IconFade,FadeE],
+    harbor: [IconHarbor,HarborUlt,HarborSmoke,],
+    jett: [IconJett ,JettSmoke,JettSmoke, JettE, JettE,],
+    kayo: [IconKayo,KayoE, KayoQ, KayoC],
+    killjoy: [IconKillJoy,KillJoyE, KillJoyQ, KillJoyQ,KillJoyC, KillJoyUlt],
+    neon: [IconNeon],
+    omen: [IconOmen, OmenQ, OmenQ, OmenSmoke, OmenSmoke, OmenUlt],  
+    phoenix: [IconPhoenix,],
+    raze: [IconRaze, RazeQ, RazeE, RazeE],
+    reyna: [IconReyna, ReynaQ],
+    sage: [IconSage,SageC90,SageC0,SageQ,SageQ],
+    skye: [IconSkye, SkyeQ, SkyeE, SkyeE],
+    sova: [IconSova, SovaQ, SovaQ, SovaC, SovaE],
+    viper: [IconViper,ViperC, ViperC, ViperQ, ViperE0, ViperE45, ViperE90, ViperE145 ],
+    yoru: [IconYoru, YoruE, YoruE, YoruC, YoruQ, YoruQ],
     spike: [spikeicon,],
-    astrault: [Astra0],
+    astrault: [Astra0, AstraUlt45, AstraUlt90, AstraUlt145],
     breachult: [BreachUlt0, BreachUlt60, BreachUlt120, BreachUlt90],
-    fadeult: [fadeult],
+    fadeult: [BreachUlt0, BreachUlt60, BreachUlt120, BreachUlt90],
 
 
 };
@@ -104,10 +176,17 @@ const agents = {
 
 import { FooterBar, ImgBar } from "./footer.js"
 export function Footer() {
+
+  
+   
+    
     const [images, setImages] = useState({});
+    const [positions, setPositions] = useState({});
 
     const handleClick = (name) => {
         setImages({...images, [name]: agents[name]});
+
+        setPositions({...positions, [name]: {x: 0, y: 0}});
     }
 
     const handleRemove = (name) => {
@@ -120,9 +199,12 @@ export function Footer() {
         }
     }
 
-    return(
+    const handleStop = (name, e, data) => {
+        setPositions({...positions, [name]: {x: data.x, y: data.y}});
+    };
+    
+    return (
         <MainBar> 
-            
             <ImgBar>
                 {Object.keys(images).map((agent) =>
                     images[agent].map((img, index) => 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Logo from '../../assets/Valorant_pink_version_logo.svg.png'
+import Logo from '../../assets/valorantlogodrag.svg'
 import Ascent from '../../assets/ascent.svg'
 import Bind from '../../assets/bind.svg'
 import Breeze from '../../assets/breeze.svg'
@@ -24,6 +24,7 @@ export function Header() {
     const [showImagePearl, setShowImagePearl] = useState(false);
     const [showImageSplit, setShowImageSplit] = useState(false);
 
+    
     function handleImageChange(image) {
         setShowImageAscent(false);
         setShowImageBind(false);
@@ -107,8 +108,12 @@ export function Header() {
                         {showImageSplit && (
                             <img src={Split} alt="Example Image" />
                         )}    </li>
+                    <li>
+                        <a href="javascript:location.reload();">Remove ALL</a>
+                    </li>
                 </ul>
             </NavBar>
+            
         </HeaderBar>
     )
 }

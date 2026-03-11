@@ -6,11 +6,37 @@ export const FooterBar = styled.footer`
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    max-height: 40vh;
+    max-height: 45vh;
     overflow-y: auto;
 
     @media (max-width: 768px) {
-        padding: 0.5rem;
+        padding: 0.75rem;
+        max-height: 50vh;
+    }
+`
+
+export const TabsContainer = styled.div`
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #3a3a3a;
+`
+
+export const Tab = styled.button`
+    background: ${props => props.$isActive ? '#ff4655' : 'transparent'};
+    border: 2px solid ${props => props.$isActive ? '#ff4655' : '#3a3a3a'};
+    color: #fff;
+    padding: 0.5rem 1.25rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: #ff4655;
+        background: ${props => props.$isActive ? '#ff4655' : 'rgba(255, 70, 85, 0.1)'};
     }
 `
 
@@ -22,7 +48,7 @@ export const AgentsGrid = styled.div`
     padding: 0.5rem;
 
     @media (max-width: 768px) {
-        gap: 4px;
+        gap: 6px;
     }
 `
 
@@ -39,7 +65,11 @@ export const AgentButton = styled.button`
 
     &:hover {
         border-color: #ff4655;
-        transform: scale(1.05);
+        transform: scale(1.08);
+    }
+
+    &:active {
+        transform: scale(0.95);
     }
 
     img {
@@ -48,8 +78,8 @@ export const AgentButton = styled.button`
         object-fit: contain;
 
         @media (max-width: 768px) {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
         }
     }
 `
@@ -59,6 +89,18 @@ export const SkillsPanel = styled.div`
     border-radius: 8px;
     padding: 1rem;
     display: ${props => props.$isVisible ? 'block' : 'none'};
+    animation: slideIn 0.2s ease;
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 `
 
 export const SkillsPanelHeader = styled.div`
@@ -86,7 +128,7 @@ export const SkillsPanelHeader = styled.div`
         background: #ff4655;
         border: none;
         color: #fff;
-        padding: 0.25rem 0.75rem;
+        padding: 0.35rem 0.75rem;
         border-radius: 4px;
         cursor: pointer;
         font-size: 0.75rem;
@@ -126,8 +168,8 @@ export const SkillButton = styled.button`
     }
 
     img {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
         object-fit: contain;
     }
 `
@@ -135,22 +177,21 @@ export const SkillButton = styled.button`
 export const MapContainer = styled.div`
     position: relative;
     width: 100%;
-    max-width: 1000px;
+    max-width: min(90vw, 800px);
     margin: 0 auto;
     aspect-ratio: 1 / 1;
-    background: #303030;
+    background: #252525;
     overflow: hidden;
     border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    flex-shrink: 0;
 
-    @media (max-width: 1024px) {
-        max-width: 90vw;
-        max-height: 60vh;
+    @media (max-height: 800px) {
+        max-width: min(85vw, 45vh);
     }
 
     @media (max-width: 768px) {
-        max-width: 95vw;
-        max-height: 50vh;
+        max-width: min(95vw, 50vh);
     }
 `
 
@@ -165,32 +206,56 @@ export const MapImage = styled.img`
     pointer-events: none;
 `
 
-export const DraggableSkill = styled.div`
+export const DraggableItem = styled.div`
     position: absolute;
     cursor: grab;
-    z-index: ${props => props.$isDragging ? 1000 : 10};
+    z-index: ${props => props.$isDragging ? 1000 : props.$isAgent ? 20 : 10};
     touch-action: none;
     user-select: none;
-    transition: ${props => props.$isDragging ? 'none' : 'box-shadow 0.2s ease'};
+    transition: ${props => props.$isDragging ? 'none' : 'box-shadow 0.2s ease, transform 0.1s ease'};
     
     &:active {
         cursor: grabbing;
     }
 
     img {
-        width: 28px;
-        height: 28px;
+        width: ${props => props.$isAgent ? '36px' : '28px'};
+        height: ${props => props.$isAgent ? '36px' : '28px'};
         pointer-events: none;
         filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 
         @media (max-width: 768px) {
-            width: 24px;
-            height: 24px;
+            width: ${props => props.$isAgent ? '32px' : '24px'};
+            height: ${props => props.$isAgent ? '32px' : '24px'};
         }
+    }
+
+    &:hover {
+        transform: translate(-50%, -50%) scale(1.1);
     }
 
     &:hover img {
         filter: drop-shadow(0 0 8px rgba(255, 70, 85, 0.6));
+    }
+`
+
+export const PlacedAgentIcon = styled.div`
+    background: rgba(26, 26, 26, 0.9);
+    border: 2px solid #ff4655;
+    border-radius: 50%;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+        width: 32px;
+        height: 32px;
+
+        @media (max-width: 768px) {
+            width: 28px;
+            height: 28px;
+        }
     }
 `
 
@@ -217,6 +282,6 @@ export const SectionTitle = styled.h3`
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.25rem 0;
     padding-left: 0.25rem;
 `

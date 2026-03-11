@@ -143,9 +143,12 @@ import {
     SkillButton,
     MapContainer,
     MapImage,
-    DraggableSkill,
+    DraggableItem,
     DeleteZone,
-    SectionTitle
+    SectionTitle,
+    TabsContainer,
+    Tab,
+    PlacedAgentIcon
 } from "./footer.js"
 
 // Agent data with skills
@@ -178,7 +181,8 @@ const agentsData = {
 
 export function Footer({ currentMap }) {
     const [selectedAgent, setSelectedAgent] = useState(null)
-    const [placedSkills, setPlacedSkills] = useState([])
+    const [activeTab, setActiveTab] = useState('agents') // 'agents' or 'skills'
+    const [placedItems, setPlacedItems] = useState([]) // items can be agents or skills
     const [draggingId, setDraggingId] = useState(null)
     const [showDeleteZone, setShowDeleteZone] = useState(false)
     const [isOverDelete, setIsOverDelete] = useState(false)
@@ -186,22 +190,43 @@ export function Footer({ currentMap }) {
     const dragOffset = useRef({ x: 0, y: 0 })
 
     const handleAgentClick = (agentName) => {
-        setSelectedAgent(selectedAgent === agentName ? null : agentName)
+        if (activeTab === 'agents') {
+            // Add agent to the map
+            const agent = agentsData[agentName]
+            const newItem = {
+                id: Date.now() + Math.random(),
+                img: agent.icon,
+                type: 'agent',
+                name: agentName,
+                x: 50,
+                y: 50
+            }
+            setPlacedItems([...placedItems, newItem])
+        } else {
+            // Show skills panel
+            setSelectedAgent(selectedAgent === agentName ? null : agentName)
+        }
     }
 
     const handleSkillAdd = (skillImg, agentName) => {
-        const newSkill = {
+        const newItem = {
             id: Date.now() + Math.random(),
             img: skillImg,
+            type: 'skill',
             agent: agentName,
             x: 50,
             y: 50
         }
-        setPlacedSkills([...placedSkills, newSkill])
+        setPlacedItems([...placedItems, newItem])
     }
 
     const handleRemoveAgentSkills = (agentName) => {
-        setPlacedSkills(placedSkills.filter(s => s.agent !== agentName))
+        setPlacedItems(placedItems.filter(s => s.agent !== agentName))
+        setSelectedAgent(null)
+    }
+
+    const handleClearAll = () => {
+        setPlacedItems([])
         setSelectedAgent(null)
     }
 
@@ -215,20 +240,20 @@ export function Footer({ currentMap }) {
         }
     }, [])
 
-    const handleDragStart = useCallback((e, skillId) => {
+    const handleDragStart = useCallback((e, itemId) => {
         e.preventDefault()
-        const skill = placedSkills.find(s => s.id === skillId)
-        if (!skill || !mapRef.current) return
+        const item = placedItems.find(s => s.id === itemId)
+        if (!item || !mapRef.current) return
 
         const pos = getPointerPosition(e, mapRef.current)
         dragOffset.current = {
-            x: pos.x - skill.x,
-            y: pos.y - skill.y
+            x: pos.x - item.x,
+            y: pos.y - item.y
         }
         
-        setDraggingId(skillId)
+        setDraggingId(itemId)
         setShowDeleteZone(true)
-    }, [placedSkills, getPointerPosition])
+    }, [placedItems, getPointerPosition])
 
     const handleDragMove = useCallback((e) => {
         if (!draggingId || !mapRef.current) return
@@ -245,14 +270,14 @@ export function Footer({ currentMap }) {
 
         setIsOverDelete(isNearBottom)
 
-        setPlacedSkills(prev => prev.map(s => 
+        setPlacedItems(prev => prev.map(s => 
             s.id === draggingId ? { ...s, x: newX, y: newY } : s
         ))
     }, [draggingId, getPointerPosition])
 
     const handleDragEnd = useCallback(() => {
         if (isOverDelete && draggingId) {
-            setPlacedSkills(prev => prev.filter(s => s.id !== draggingId))
+            setPlacedItems(prev => prev.filter(s => s.id !== draggingId))
         }
         setDraggingId(null)
         setShowDeleteZone(false)
@@ -271,20 +296,27 @@ export function Footer({ currentMap }) {
             >
                 {currentMap && <MapImage src={currentMap} alt="Mapa selecionado" />}
                 
-                {placedSkills.map((skill) => (
-                    <DraggableSkill
-                        key={skill.id}
-                        $isDragging={draggingId === skill.id}
+                {placedItems.map((item) => (
+                    <DraggableItem
+                        key={item.id}
+                        $isDragging={draggingId === item.id}
+                        $isAgent={item.type === 'agent'}
                         style={{
-                            left: `${skill.x}%`,
-                            top: `${skill.y}%`,
+                            left: `${item.x}%`,
+                            top: `${item.y}%`,
                             transform: 'translate(-50%, -50%)'
                         }}
-                        onMouseDown={(e) => handleDragStart(e, skill.id)}
-                        onTouchStart={(e) => handleDragStart(e, skill.id)}
+                        onMouseDown={(e) => handleDragStart(e, item.id)}
+                        onTouchStart={(e) => handleDragStart(e, item.id)}
                     >
-                        <img src={skill.img} alt="Skill" draggable={false} />
-                    </DraggableSkill>
+                        {item.type === 'agent' ? (
+                            <PlacedAgentIcon>
+                                <img src={item.img} alt={item.name} draggable={false} />
+                            </PlacedAgentIcon>
+                        ) : (
+                            <img src={item.img} alt="Skill" draggable={false} />
+                        )}
+                    </DraggableItem>
                 ))}
 
                 <DeleteZone $isVisible={showDeleteZone} $isActive={isOverDelete}>
@@ -293,44 +325,98 @@ export function Footer({ currentMap }) {
             </MapContainer>
 
             <FooterBar>
-                <SectionTitle>Agentes</SectionTitle>
-                <AgentsGrid>
-                    {Object.entries(agentsData).map(([name, data]) => (
-                        <AgentButton 
-                            key={name}
-                            $isSelected={selectedAgent === name}
-                            onClick={() => handleAgentClick(name)}
-                            title={name}
+                <TabsContainer>
+                    <Tab 
+                        $isActive={activeTab === 'agents'}
+                        onClick={() => { setActiveTab('agents'); setSelectedAgent(null); }}
+                    >
+                        Agentes
+                    </Tab>
+                    <Tab 
+                        $isActive={activeTab === 'skills'}
+                        onClick={() => setActiveTab('skills')}
+                    >
+                        Habilidades
+                    </Tab>
+                    {placedItems.length > 0 && (
+                        <button 
+                            onClick={handleClearAll}
+                            style={{
+                                marginLeft: 'auto',
+                                background: '#ff4655',
+                                border: 'none',
+                                color: '#fff',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '0.8rem'
+                            }}
                         >
-                            <img src={data.icon} alt={name} />
-                        </AgentButton>
-                    ))}
-                </AgentsGrid>
-
-                <SkillsPanel $isVisible={selectedAgent && agentsData[selectedAgent]?.skills.length > 0}>
-                    {selectedAgent && agentsData[selectedAgent] && (
-                        <>
-                            <SkillsPanelHeader>
-                                <img src={agentsData[selectedAgent].portrait} alt={selectedAgent} />
-                                <span>{selectedAgent}</span>
-                                <button onClick={() => handleRemoveAgentSkills(selectedAgent)}>
-                                    Remover Todas
-                                </button>
-                            </SkillsPanelHeader>
-                            <SkillsGrid>
-                                {agentsData[selectedAgent].skills.map((skill, index) => (
-                                    <SkillButton 
-                                        key={index}
-                                        onClick={() => handleSkillAdd(skill, selectedAgent)}
-                                        title={`Adicionar habilidade ${index + 1}`}
-                                    >
-                                        <img src={skill} alt={`Skill ${index + 1}`} />
-                                    </SkillButton>
-                                ))}
-                            </SkillsGrid>
-                        </>
+                            Limpar Tudo ({placedItems.length})
+                        </button>
                     )}
-                </SkillsPanel>
+                </TabsContainer>
+
+                {activeTab === 'agents' && (
+                    <>
+                        <SectionTitle>Clique para adicionar ao mapa</SectionTitle>
+                        <AgentsGrid>
+                            {Object.entries(agentsData).map(([name, data]) => (
+                                <AgentButton 
+                                    key={name}
+                                    $isSelected={false}
+                                    onClick={() => handleAgentClick(name)}
+                                    title={`Adicionar ${name}`}
+                                >
+                                    <img src={data.icon} alt={name} />
+                                </AgentButton>
+                            ))}
+                        </AgentsGrid>
+                    </>
+                )}
+
+                {activeTab === 'skills' && (
+                    <>
+                        <SectionTitle>Selecione um agente para ver habilidades</SectionTitle>
+                        <AgentsGrid>
+                            {Object.entries(agentsData).map(([name, data]) => (
+                                <AgentButton 
+                                    key={name}
+                                    $isSelected={selectedAgent === name}
+                                    onClick={() => handleAgentClick(name)}
+                                    title={name}
+                                >
+                                    <img src={data.icon} alt={name} />
+                                </AgentButton>
+                            ))}
+                        </AgentsGrid>
+
+                        <SkillsPanel $isVisible={selectedAgent && agentsData[selectedAgent]?.skills.length > 0}>
+                            {selectedAgent && agentsData[selectedAgent] && (
+                                <>
+                                    <SkillsPanelHeader>
+                                        <img src={agentsData[selectedAgent].portrait} alt={selectedAgent} />
+                                        <span>{selectedAgent}</span>
+                                        <button onClick={() => handleRemoveAgentSkills(selectedAgent)}>
+                                            Remover do {selectedAgent}
+                                        </button>
+                                    </SkillsPanelHeader>
+                                    <SkillsGrid>
+                                        {agentsData[selectedAgent].skills.map((skill, index) => (
+                                            <SkillButton 
+                                                key={index}
+                                                onClick={() => handleSkillAdd(skill, selectedAgent)}
+                                                title={`Adicionar habilidade ${index + 1}`}
+                                            >
+                                                <img src={skill} alt={`Skill ${index + 1}`} />
+                                            </SkillButton>
+                                        ))}
+                                    </SkillsGrid>
+                                </>
+                            )}
+                        </SkillsPanel>
+                    </>
+                )}
             </FooterBar>
         </>
     )

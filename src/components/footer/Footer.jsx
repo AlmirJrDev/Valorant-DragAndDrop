@@ -1,10 +1,6 @@
-//React and DragHandle
+import { useState, useRef, useCallback } from "react"
 
-import { useState } from "react"
-import Draggable from "react-draggable"
-
-//Images Bar
-
+// Agent Images
 import Astra from "../../assets/agents/astra.svg"
 import Breach from "../../assets/agents/breach.svg"
 import Brimstone from "../../assets/agents/brimstone.svg"
@@ -30,8 +26,7 @@ import astrault from "../../assets/agents/astrault.svg"
 import breachult from "../../assets/agents/breachult.svg"
 import fadeult from "../../assets/agents/fadeult.svg"
 
-//Skills Astra
-
+// Skills Astra
 import AstraSmoke from "../../assets/skills/astrasmoke.svg"
 import AstraC from "../../assets/skills/astrac.svg"
 import Astra0 from "../../assets/skills/astra0.svg"
@@ -138,113 +133,205 @@ import YoruE from "../../assets/skills/yorue.svg"
 import YoruQ from "../../assets/skills/yoruq.svg" 
 import YoruC from "../../assets/skills/yoruc.svg"
 
+import { 
+    FooterBar, 
+    AgentsGrid, 
+    AgentButton, 
+    SkillsPanel, 
+    SkillsPanelHeader, 
+    SkillsGrid, 
+    SkillButton,
+    MapContainer,
+    MapImage,
+    DraggableSkill,
+    DeleteZone,
+    SectionTitle
+} from "./footer.js"
 
+// Agent data with skills
+const agentsData = {
+    Astra: { icon: Astra, portrait: IconAstra, skills: [AstraSmoke, AstraSmoke, AstraSmoke, AstraC, AstraQ] },
+    Breach: { icon: Breach, portrait: IconBreach, skills: [BreachE90, BreachE45, BreachE145, BreachE, BreachC, BreachC145, BreachC45, BreachC90, BreachQ] },
+    Brimstone: { icon: Brimstone, portrait: IconBrim, skills: [BrimSmoke, BrimSmoke, BrimSmoke, BrimUlt, BrimQ, BrimC] },
+    Chamber: { icon: chamber, portrait: IconChamber, skills: [ChamberE, ChamberC] },
+    Cypher: { icon: cypher, portrait: IconCypher, skills: [CypherQ, CypherQ, CypherC, CypherC, CypherE] },
+    Fade: { icon: fade, portrait: IconFade, skills: [FadeE] },
+    Harbor: { icon: harbor, portrait: IconHarbor, skills: [HarborUlt, HarborSmoke] },
+    Jett: { icon: jett, portrait: IconJett, skills: [JettSmoke, JettSmoke, JettE, JettE] },
+    Kayo: { icon: kayo, portrait: IconKayo, skills: [KayoE, KayoQ, KayoC] },
+    Killjoy: { icon: killjoy, portrait: IconKillJoy, skills: [KillJoyE, KillJoyQ, KillJoyQ, KillJoyC, KillJoyUlt] },
+    Neon: { icon: neon, portrait: IconNeon, skills: [] },
+    Omen: { icon: omen, portrait: IconOmen, skills: [OmenQ, OmenQ, OmenSmoke, OmenSmoke, OmenUlt] },
+    Phoenix: { icon: phoenix, portrait: IconPhoenix, skills: [] },
+    Raze: { icon: raze, portrait: IconRaze, skills: [RazeQ, RazeE, RazeE] },
+    Reyna: { icon: reyna, portrait: IconReyna, skills: [ReynaQ] },
+    Sage: { icon: sage, portrait: IconSage, skills: [SageC90, SageC0, SageQ, SageQ] },
+    Skye: { icon: skye, portrait: IconSkye, skills: [SkyeQ, SkyeE, SkyeE] },
+    Sova: { icon: sova, portrait: IconSova, skills: [SovaQ, SovaQ, SovaC, SovaE] },
+    Viper: { icon: viper, portrait: IconViper, skills: [ViperC, ViperC, ViperQ, ViperE0, ViperE45, ViperE90, ViperE145] },
+    Yoru: { icon: yoru, portrait: IconYoru, skills: [YoruE, YoruE, YoruC, YoruQ, YoruQ] },
+    Spike: { icon: spike, portrait: spikeicon, skills: [spikeicon] },
+    AstraUlt: { icon: astrault, portrait: Astra0, skills: [Astra0, AstraUlt45, AstraUlt90, AstraUlt145] },
+    BreachUlt: { icon: breachult, portrait: BreachUlt0, skills: [BreachUlt0, BreachUlt60, BreachUlt120, BreachUlt90] },
+    FadeUlt: { icon: fadeult, portrait: BreachUlt0, skills: [BreachUlt0, BreachUlt60, BreachUlt120, BreachUlt90] },
+}
 
+export function Footer({ currentMap }) {
+    const [selectedAgent, setSelectedAgent] = useState(null)
+    const [placedSkills, setPlacedSkills] = useState([])
+    const [draggingId, setDraggingId] = useState(null)
+    const [showDeleteZone, setShowDeleteZone] = useState(false)
+    const [isOverDelete, setIsOverDelete] = useState(false)
+    const mapRef = useRef(null)
+    const dragOffset = useRef({ x: 0, y: 0 })
 
-
-import { MainBar } from "../main/main"
-
-const agents = {
-    Astra: [IconAstra, AstraSmoke, AstraSmoke, AstraSmoke, AstraC, AstraQ ],
-    Breach: [IconBreach,BreachE90, BreachE45, BreachE145, BreachE, BreachC, BreachC145, BreachC45, BreachC90, BreachQ, BreachQ],
-    Brimstone: [IconBrim, BrimSmoke, BrimSmoke, BrimSmoke, BrimUlt, BrimQ, BrimC],
-    chamber: [IconChamber, ChamberE, ChamberC],
-    cypher: [IconCypher,CypherQ, CypherQ, CypherC, CypherC, CypherE],
-    fade: [IconFade,FadeE],
-    harbor: [IconHarbor,HarborUlt,HarborSmoke,],
-    jett: [IconJett ,JettSmoke,JettSmoke, JettE, JettE,],
-    kayo: [IconKayo,KayoE, KayoQ, KayoC],
-    killjoy: [IconKillJoy,KillJoyE, KillJoyQ, KillJoyQ,KillJoyC, KillJoyUlt],
-    neon: [IconNeon],
-    omen: [IconOmen, OmenQ, OmenQ, OmenSmoke, OmenSmoke, OmenUlt],  
-    phoenix: [IconPhoenix,],
-    raze: [IconRaze, RazeQ, RazeE, RazeE],
-    reyna: [IconReyna, ReynaQ],
-    sage: [IconSage,SageC90,SageC0,SageQ,SageQ],
-    skye: [IconSkye, SkyeQ, SkyeE, SkyeE],
-    sova: [IconSova, SovaQ, SovaQ, SovaC, SovaE],
-    viper: [IconViper,ViperC, ViperC, ViperQ, ViperE0, ViperE45, ViperE90, ViperE145 ],
-    yoru: [IconYoru, YoruE, YoruE, YoruC, YoruQ, YoruQ],
-    spike: [spikeicon,],
-    astrault: [Astra0, AstraUlt45, AstraUlt90, AstraUlt145],
-    breachult: [BreachUlt0, BreachUlt60, BreachUlt120, BreachUlt90],
-    fadeult: [BreachUlt0, BreachUlt60, BreachUlt120, BreachUlt90],
-
-
-};
-
-
-import { FooterBar, ImgBar } from "./footer.js"
-export function Footer() {
-
-  
-   
-    
-    const [images, setImages] = useState({});
-    const [positions, setPositions] = useState({});
-
-    const handleClick = (name) => {
-        setImages({...images, [name]: agents[name]});
-
-        setPositions({...positions, [name]: {x: 0, y: 0}});
+    const handleAgentClick = (agentName) => {
+        setSelectedAgent(selectedAgent === agentName ? null : agentName)
     }
 
-    const handleRemove = (name) => {
-        if (images[name]) {
-            const newImages = {...images};
-            delete newImages[name];
-            setImages(newImages);
-        } else {
-            handleClick(name);
+    const handleSkillAdd = (skillImg, agentName) => {
+        const newSkill = {
+            id: Date.now() + Math.random(),
+            img: skillImg,
+            agent: agentName,
+            x: 50,
+            y: 50
         }
+        setPlacedSkills([...placedSkills, newSkill])
     }
 
-    const handleStop = (name, e, data) => {
-        setPositions({...positions, [name]: {x: data.x, y: data.y}});
-    };
-    
+    const handleRemoveAgentSkills = (agentName) => {
+        setPlacedSkills(placedSkills.filter(s => s.agent !== agentName))
+        setSelectedAgent(null)
+    }
+
+    const getPointerPosition = useCallback((e, element) => {
+        const rect = element.getBoundingClientRect()
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY
+        return {
+            x: ((clientX - rect.left) / rect.width) * 100,
+            y: ((clientY - rect.top) / rect.height) * 100
+        }
+    }, [])
+
+    const handleDragStart = useCallback((e, skillId) => {
+        e.preventDefault()
+        const skill = placedSkills.find(s => s.id === skillId)
+        if (!skill || !mapRef.current) return
+
+        const pos = getPointerPosition(e, mapRef.current)
+        dragOffset.current = {
+            x: pos.x - skill.x,
+            y: pos.y - skill.y
+        }
+        
+        setDraggingId(skillId)
+        setShowDeleteZone(true)
+    }, [placedSkills, getPointerPosition])
+
+    const handleDragMove = useCallback((e) => {
+        if (!draggingId || !mapRef.current) return
+        e.preventDefault()
+
+        const pos = getPointerPosition(e, mapRef.current)
+        const newX = Math.max(0, Math.min(100, pos.x - dragOffset.current.x))
+        const newY = Math.max(0, Math.min(100, pos.y - dragOffset.current.y))
+
+        // Check if over delete zone
+        const rect = mapRef.current.getBoundingClientRect()
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY
+        const isNearBottom = clientY > rect.bottom - 60
+
+        setIsOverDelete(isNearBottom)
+
+        setPlacedSkills(prev => prev.map(s => 
+            s.id === draggingId ? { ...s, x: newX, y: newY } : s
+        ))
+    }, [draggingId, getPointerPosition])
+
+    const handleDragEnd = useCallback(() => {
+        if (isOverDelete && draggingId) {
+            setPlacedSkills(prev => prev.filter(s => s.id !== draggingId))
+        }
+        setDraggingId(null)
+        setShowDeleteZone(false)
+        setIsOverDelete(false)
+    }, [draggingId, isOverDelete])
+
     return (
-        <MainBar> 
-            <ImgBar>
-                {Object.keys(images).map((agent) =>
-                    images[agent].map((img, index) => 
-                    <Draggable >
-                     
-                        <img key={index} src={img} alt={agent} />
-                   
-                    </Draggable>)
-                      )}
-                </ImgBar>
-        
-        
-        <FooterBar>
-             <a href="#" onClick={() => handleRemove("Astra")}><img src={Astra} alt="Astra" title="Astra" /></a>
-            <a href="#" onClick={() => handleRemove("Breach")}><img src={Breach} alt="Breach" title="Breach" /></a>
-            <a href="#" onClick={() => handleRemove("Brimstone")}><img src={Brimstone} alt="Brimstone" title="Brimstone" /></a>
-            <a href="#" onClick={() => handleRemove("chamber")}><img src={chamber} alt="chamber" title="Chamber"/></a>
-            <a href="#" onClick={() => handleRemove("cypher")}><img src={cypher} alt="cypher" title="Cypher" /></a>
-            <a href="#" onClick={() => handleRemove("fade")}><img src={fade} alt="fade"  title="Fade"/></a>
-            <a href="#" onClick={() => handleRemove("harbor")}><img src={harbor} alt="harbor" title="Harbor" /></a>
-            <a href="#" onClick={() => handleRemove("jett")}><img src={jett} alt="jett"  title="Jett"/></a>
-            <a href="#" onClick={() => handleRemove("kayo")}><img src={kayo} alt="kayo"  title="Kayo"/></a>
-            <a href="#" onClick={() => handleRemove("killjoy")}><img src={killjoy} alt="killjoy" title="KillJoy"/></a>
-            <a href="#" onClick={() => handleRemove("neon")}><img src={neon} alt="neon"  title="Neon"/></a>
-            <a href="#" onClick={() => handleRemove("omen")}><img src={omen} alt="omen"  title="Omen"/></a>
-            <a href="#" onClick={() => handleRemove("phoenix")}><img src={phoenix} alt="phoenix" title="Phoenix" /></a>
-            <a href="#" onClick={() => handleRemove("raze")}><img src={raze} alt="raze"  title="Raze"/></a>
-            <a href="#" onClick={() => handleRemove("reyna")}><img src={reyna} alt="reyna" title="Reyna" /></a>
-            <a href="#" onClick={() => handleRemove("sage")}><img src={sage} alt="sage"  title="Sage"/></a>
-            <a href="#" onClick={() => handleRemove("skye")}><img src={skye} alt="skye"  title="Skye"/></a>
-            <a href="#" onClick={() => handleRemove("sova")}><img src={sova} alt="sova"  title="Sova"/></a>
-            <a href="#" onClick={() => handleRemove("viper")}><img src={viper} alt="viper" title="Viper" /></a>
-            <a href="#" onClick={() => handleRemove("yoru")}><img src={yoru} alt="yoru"  title="Yoru"/></a>
-            <a href="#" onClick={() => handleRemove("spike")}><img src={spike} alt="spike" title="Spike" /></a>
-            <a href="#" onClick={() => handleRemove("astrault")}><img src={astrault} alt="ult astra" title="Ult Astra" /></a>
-            <a href="#" onClick={() => handleRemove("breachult")}><img src={breachult} alt="ult astra" title="Ult Breach" /></a>
-            <a href="#" onClick={() => handleRemove("fadeult")}><img src={fadeult} alt="ult astra" title="Ult Fade" /></a>
-        
-        </FooterBar>
+        <>
+            <MapContainer 
+                ref={mapRef}
+                onMouseMove={handleDragMove}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
+                onTouchMove={handleDragMove}
+                onTouchEnd={handleDragEnd}
+            >
+                {currentMap && <MapImage src={currentMap} alt="Mapa selecionado" />}
+                
+                {placedSkills.map((skill) => (
+                    <DraggableSkill
+                        key={skill.id}
+                        $isDragging={draggingId === skill.id}
+                        style={{
+                            left: `${skill.x}%`,
+                            top: `${skill.y}%`,
+                            transform: 'translate(-50%, -50%)'
+                        }}
+                        onMouseDown={(e) => handleDragStart(e, skill.id)}
+                        onTouchStart={(e) => handleDragStart(e, skill.id)}
+                    >
+                        <img src={skill.img} alt="Skill" draggable={false} />
+                    </DraggableSkill>
+                ))}
 
-    </MainBar>
-)}
+                <DeleteZone $isVisible={showDeleteZone} $isActive={isOverDelete}>
+                    Arraste aqui para remover
+                </DeleteZone>
+            </MapContainer>
 
+            <FooterBar>
+                <SectionTitle>Agentes</SectionTitle>
+                <AgentsGrid>
+                    {Object.entries(agentsData).map(([name, data]) => (
+                        <AgentButton 
+                            key={name}
+                            $isSelected={selectedAgent === name}
+                            onClick={() => handleAgentClick(name)}
+                            title={name}
+                        >
+                            <img src={data.icon} alt={name} />
+                        </AgentButton>
+                    ))}
+                </AgentsGrid>
+
+                <SkillsPanel $isVisible={selectedAgent && agentsData[selectedAgent]?.skills.length > 0}>
+                    {selectedAgent && agentsData[selectedAgent] && (
+                        <>
+                            <SkillsPanelHeader>
+                                <img src={agentsData[selectedAgent].portrait} alt={selectedAgent} />
+                                <span>{selectedAgent}</span>
+                                <button onClick={() => handleRemoveAgentSkills(selectedAgent)}>
+                                    Remover Todas
+                                </button>
+                            </SkillsPanelHeader>
+                            <SkillsGrid>
+                                {agentsData[selectedAgent].skills.map((skill, index) => (
+                                    <SkillButton 
+                                        key={index}
+                                        onClick={() => handleSkillAdd(skill, selectedAgent)}
+                                        title={`Adicionar habilidade ${index + 1}`}
+                                    >
+                                        <img src={skill} alt={`Skill ${index + 1}`} />
+                                    </SkillButton>
+                                ))}
+                            </SkillsGrid>
+                        </>
+                    )}
+                </SkillsPanel>
+            </FooterBar>
+        </>
+    )
+}

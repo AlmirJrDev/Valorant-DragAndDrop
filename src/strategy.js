@@ -13,9 +13,9 @@ export const createId = () => `${Date.now()}-${Math.random().toString(36).slice(
 
 const round = (value) => Math.round(value * 10) / 10
 
-// Item format: [type, agentId | skillId, x, y, rotation, weaponId?, side?, ownerIndex?]
+// Item format: [type, agentId | skillId, x, y, rotation, weaponId?, side?, ownerIndex?, x2?, y2?]
 // side is "a" (attack) or "d" (defense); ownerIndex links a skill to the agent it was
-// placed from. "o" (map orientation) and every field after rotation were added later
+// placed from; x2/y2 is the second end of a tripwire. "o" (map orientation) and every field after rotation were added later
 // and are optional, so links created before them still open.
 const SIDE_CODES = { attack: "a", defense: "d" }
 const SIDES_BY_CODE = { a: "attack", d: "defense" }
@@ -37,7 +37,9 @@ function serialize({ mapId, mapRotation, items }) {
             const extra = [
                 item.weapon?.id ?? null,
                 SIDE_CODES[item.side] ?? null,
-                indexById.get(item.ownerId) ?? null
+                indexById.get(item.ownerId) ?? null,
+                item.x2 === undefined ? null : round(item.x2),
+                item.y2 === undefined ? null : round(item.y2)
             ]
             // Drop trailing empty fields to keep links short
             while (extra.length && extra[extra.length - 1] === null) extra.pop()
@@ -56,7 +58,7 @@ function deserialize(data, agents, weapons) {
     // Ids are created up front so skills can point to their owner agent by index
     const ids = data.i.map(() => createId())
 
-    const items = data.i.flatMap(([type, ref, x, y, rotation, weaponId, sideCode, ownerIndex], index) => {
+    const items = data.i.flatMap(([type, ref, x, y, rotation, weaponId, sideCode, ownerIndex, x2, y2], index) => {
         const base = {
             id: ids[index],
             x: Number(x) || 50,
@@ -76,7 +78,13 @@ function deserialize(data, agents, weapons) {
         if (type === "s" && skillById.has(ref)) {
             const { skill, agent } = skillById.get(ref)
             const ownerId = Number.isInteger(ownerIndex) ? ids[ownerIndex] : undefined
-            return [{ ...base, type: "skill", img: skill.img, name: skill.name, agentId: agent.id, skillId: skill.id, ownerId }]
+            const skillItem = { ...base, type: "skill", img: skill.img, name: skill.name, agentId: agent.id, skillId: skill.id, shape: skill.shape, ownerId }
+            if (skill.shape?.type === "tripwire") {
+                // Saved before tripwires had a second end: start with a short horizontal wire
+                skillItem.x2 = typeof x2 === "number" ? x2 : Math.min(100, skillItem.x + 5)
+                skillItem.y2 = typeof y2 === "number" ? y2 : skillItem.y
+            }
+            return [skillItem]
         }
         // Agent or ability no longer exists in the game data: skip it
         return []

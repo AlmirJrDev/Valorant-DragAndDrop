@@ -58,11 +58,17 @@ function Board({ agents, maps, weapons }) {
   // Items rotate together with the map so the strategy keeps making sense
   const handleRotateMap = () => {
     setMapRotation((rotation + 90) % 360);
-    setItems(prev => prev.map(item => ({
-      ...item,
-      ...rotatePosition(item),
-      rotation: item.type === "skill" ? (item.rotation + 90) % 360 : item.rotation
-    })));
+    setItems(prev => prev.map(item => {
+      const rotated = {
+        ...item,
+        ...rotatePosition(item),
+        rotation: item.type === "skill" ? (item.rotation + 90) % 360 : item.rotation
+      };
+      // Tripwires also have a second end
+      if (item.x2 === undefined) return rotated;
+      const end = rotatePosition({ x: item.x2, y: item.y2 });
+      return { ...rotated, x2: end.x, y2: end.y };
+    }));
   };
 
   const handleReset = () => {

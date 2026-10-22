@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import spike from "../assets/spike.svg"
+import { ABILITY_SHAPES } from "../data/abilityShapes.js"
 
 // Public, community-maintained API with the current game data (agents, abilities, maps).
 // Fetching at runtime keeps the app up to date when Riot releases new agents or maps.
@@ -40,7 +41,8 @@ function toAgent(agent) {
                 name: ability.displayName,
                 key: SLOT_KEYS[ability.slot],
                 img: ability.displayIcon,
-                isWeapon: WEAPON_ABILITIES.has(id)
+                isWeapon: WEAPON_ABILITIES.has(id),
+                shape: ABILITY_SHAPES[id] ?? null
             }
         })
 
@@ -122,7 +124,9 @@ export async function fetchMaps() {
                 name: map.displayName,
                 img: map.displayIcon,
                 callouts,
-                defaultRotation: attackDownRotation(callouts)
+                defaultRotation: attackDownRotation(callouts),
+                // Game units are centimeters; the multiplier converts them to minimap 0..1
+                metersToPercent: Math.abs(map.xMultiplier) * 100 * 100
             }
         })
         .sort((a, b) => a.name.localeCompare(b.name, LANGUAGE))

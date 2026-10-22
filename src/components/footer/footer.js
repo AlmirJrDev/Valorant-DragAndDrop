@@ -692,3 +692,31 @@ export const PopoverIconButton = styled.button`
         font-size: 0.7rem;
     }
 `
+
+export const ShapeLayer = styled.svg`
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 6;
+`
+
+export const ShapeHandle = styled.div`
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    border: 3px solid ${props => props.$color};
+    transform: translate(-50%, -50%) scale(var(--inv-zoom, 1));
+    cursor: crosshair;
+    touch-action: none;
+    z-index: 15;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+
+    &:hover {
+        background: ${props => props.$color};
+    }
+`

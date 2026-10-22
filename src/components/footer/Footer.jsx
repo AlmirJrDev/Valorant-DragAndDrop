@@ -25,10 +25,25 @@ import {
     ZoomLevel
 } from "./footer.js"
 
+import { AbilityShapes } from "./AbilityShapes.jsx"
 import { AgentPopover } from "./AgentPopover.jsx"
 import { MapCallouts } from "./MapCallouts.jsx"
 import { WeaponPicker } from "./WeaponPicker.jsx"
 import { createId } from "../../strategy.js"
+import { angleTo, DEFAULT_WALL_ROTATION } from "../../data/abilityShapes.js"
+
+// Starting rotation / second end for abilities drawn with a shape
+function shapeDefaults(shape, x, y, metersToPercent) {
+    if (shape?.type === "wall") return { rotation: DEFAULT_WALL_ROTATION }
+    if (shape?.type === "tripwire") {
+        return { x2: clamp(x + shape.maxLength * 0.6 * metersToPercent), y2: y }
+    }
+    return {}
+}
+
+// Abilities with a shape rotate the shape, not the icon; tripwires are aimed by their handle
+const rotatesIcon = (item) => item.type === "skill" && !item.shape
+const isRotatable = (item) => item.type === "skill" && item.shape?.type !== "tripwire"
 
 // Pointer movement (px) below which a press on an agent counts as a click, not a drag
 const CLICK_TOLERANCE = 4
@@ -84,6 +99,9 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
     const stopDragRef = useRef(null)
 
     const frameSize = () => viewportRef.current?.getBoundingClientRect().width ?? 0
+
+    // Map % per game meter, used to draw abilities at their real size
+    const metersToPercent = currentMap?.metersToPercent ?? 0.7
 
     const zoomBy = (factor) => {
         const size = frameSize()
@@ -145,6 +163,8 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
         setPlacedItems(prev => {
             const count = prev.filter(s => s.type === 'skill' && s.ownerId === agentItem.id).length
             const angle = (count * 60 - 30) * Math.PI / 180
+            const x = clamp(agentItem.x + Math.cos(angle) * 7 / view.zoom)
+            const y = clamp(agentItem.y + Math.sin(angle) * 7 / view.zoom)
             return [...prev, {
                 id: createId(),
                 type: 'skill',
@@ -152,11 +172,13 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
                 name: skill.name,
                 agentId: agentItem.agentId,
                 skillId: skill.id,
+                shape: skill.shape,
                 ownerId: agentItem.id,
                 side: agentItem.side,
-                x: clamp(agentItem.x + Math.cos(angle) * 7 / view.zoom),
-                y: clamp(agentItem.y + Math.sin(angle) * 7 / view.zoom),
-                rotation: 0
+                x,
+                y,
+                rotation: 0,
+                ...shapeDefaults(skill.shape, x, y, metersToPercent)
             }]
         })
     }
@@ -185,11 +207,14 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
         setPlacedItems(prev => {
             const angle = prev.length * 1.2
             const radius = prev.length === 0 ? 0 : Math.min(6 + prev.length * 1.5, 25) / zoom
+            const x = clamp(center.x + Math.cos(angle) * radius)
+            const y = clamp(center.y + Math.sin(angle) * radius)
             return [...prev, {
                 id: createId(),
-                x: clamp(center.x + Math.cos(angle) * radius),
-                y: clamp(center.y + Math.sin(angle) * radius),
+                x,
+                y,
                 rotation: 0,
+                ...shapeDefaults(item.shape, x, y, metersToPercent),
                 ...item
             }]
         })
@@ -205,7 +230,7 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
     }
 
     const handleSkillAdd = (skill, agent) => {
-        addItem({ img: skill.img, type: 'skill', name: skill.name, agentId: agent.id, skillId: skill.id })
+        addItem({ img: skill.img, type: 'skill', name: skill.name, agentId: agent.id, skillId: skill.id, shape: skill.shape })
     }
 
     const handleRemoveAgentItems = (agentId) => {
@@ -262,7 +287,12 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
 
             overDelete = isOverDeleteZone(ev.clientX, ev.clientY)
             setIsOverDelete(overDelete)
-            setPlacedItems(prev => prev.map(s => s.id === item.id ? { ...s, x, y } : s))
+            // A tripwire moves as a whole: its second end follows the icon
+            const end = item.x2 === undefined ? {} : {
+                x2: clamp(item.x2 + x - item.x),
+                y2: clamp(item.y2 + y - item.y)
+            }
+            setPlacedItems(prev => prev.map(s => s.id === item.id ? { ...s, x, y, ...end } : s))
         }
 
         const stopDrag = () => {
@@ -290,6 +320,43 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
         window.addEventListener('pointercancel', handleUp)
         stopDragRef.current = stopDrag
         setDraggingId(item.id)
+    }
+
+    // Dragging a shape's handle aims it (direction, wall) or stretches it (tripwire,
+    // limited to the ability's real maximum length)
+    const handleShapeHandleDown = (e, item) => {
+        if (e.button !== 0 || !mapRef.current) return
+        e.preventDefault()
+        e.stopPropagation()
+        stopDragRef.current?.()
+
+        const handleMove = (ev) => {
+            if (!mapRef.current) return
+            const pos = getMapPosition(ev.clientX, ev.clientY)
+            let changes
+            if (item.shape.type === 'tripwire') {
+                const max = item.shape.maxLength * metersToPercent
+                const dx = pos.x - item.x
+                const dy = pos.y - item.y
+                const scale = Math.min(1, max / (Math.hypot(dx, dy) || 1))
+                changes = { x2: clamp(item.x + dx * scale), y2: clamp(item.y + dy * scale) }
+            } else {
+                changes = { rotation: Math.round(angleTo(item, pos)) }
+            }
+            setPlacedItems(prev => prev.map(s => s.id === item.id ? { ...s, ...changes } : s))
+        }
+
+        const stopDrag = () => {
+            window.removeEventListener('pointermove', handleMove)
+            window.removeEventListener('pointerup', stopDrag)
+            window.removeEventListener('pointercancel', stopDrag)
+            stopDragRef.current = null
+        }
+
+        window.addEventListener('pointermove', handleMove)
+        window.addEventListener('pointerup', stopDrag)
+        window.addEventListener('pointercancel', stopDrag)
+        stopDragRef.current = stopDrag
     }
 
     // Remove any pending window listeners if the component unmounts mid-drag (e.g. reset)
@@ -356,15 +423,21 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
                         </>
                     )}
 
+                    <AbilityShapes
+                        items={placedItems}
+                        metersToPercent={metersToPercent}
+                        onHandlePointerDown={handleShapeHandleDown}
+                    />
+
                     {placedItems.map((item) => (
                         <DraggableItem
                             key={item.id}
                             data-id={item.id}
-                            data-rotatable={item.type === 'skill'}
+                            data-rotatable={isRotatable(item)}
                             $isDragging={draggingId === item.id}
                             $isAgent={item.type === 'agent'}
                             $side={item.side}
-                            style={{ left: `${item.x}%`, top: `${item.y}%`, '--rotation': `${item.rotation}deg` }}
+                            style={{ left: `${item.x}%`, top: `${item.y}%`, '--rotation': `${rotatesIcon(item) ? item.rotation : 0}deg` }}
                             onPointerDown={(e) => handlePointerDown(e, item)}
                             onDoubleClick={() => handleRemoveItem(item.id)}
                             onContextMenu={(e) => { e.preventDefault(); handleRemoveItem(item.id) }}

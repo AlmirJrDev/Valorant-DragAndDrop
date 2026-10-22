@@ -25,7 +25,8 @@ import {
     ZoomLevel,
     SectionRow,
     SideCounter,
-    Workspace
+    Workspace,
+    SidePanel
 } from "./footer.js"
 
 import { AbilityShapes } from "./AbilityShapes.jsx"
@@ -536,99 +537,111 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
                 </DeleteZone>
             </MapContainer>
 
+            {/* On wide screens the two panels sit on each side of the map;
+                otherwise they are stacked in this footer */}
             <FooterBar>
-                {selectedItem && showAllWeapons && (
-                    <WeaponPicker
-                        item={selectedItem}
-                        agent={agents.find(agent => agent.id === selectedItem.agentId)}
-                        weapons={weapons}
-                        onSelect={(weapon) => updateSelectedItem({ weapon })}
-                        onClose={() => setShowAllWeapons(false)}
-                    />
-                )}
+                <SidePanel $area="right">
+                    <TabsContainer>
+                        <Tab
+                            $isActive={activeTab === 'agents'}
+                            onClick={() => { setActiveTab('agents'); setSelectedAgentId(null); }}
+                        >
+                            Agentes
+                        </Tab>
+                        <Tab
+                            $isActive={activeTab === 'skills'}
+                            onClick={() => setActiveTab('skills')}
+                        >
+                            Habilidades
+                        </Tab>
+                        {placedItems.length > 0 && (
+                            <ClearButton onClick={handleClearAll}>
+                                Limpar Tudo ({placedItems.length})
+                            </ClearButton>
+                        )}
+                    </TabsContainer>
 
-                <TabsContainer>
-                    <Tab
-                        $isActive={activeTab === 'agents'}
-                        onClick={() => { setActiveTab('agents'); setSelectedAgentId(null); }}
-                    >
-                        Agentes
-                    </Tab>
-                    <Tab
-                        $isActive={activeTab === 'skills'}
-                        onClick={() => setActiveTab('skills')}
-                    >
-                        Habilidades
-                    </Tab>
-                    {placedItems.length > 0 && (
-                        <ClearButton onClick={handleClearAll}>
-                            Limpar Tudo ({placedItems.length})
-                        </ClearButton>
-                    )}
-                </TabsContainer>
-
-                <SectionRow>
                     <SectionTitle $isNotice={Boolean(notice)} role={notice ? 'status' : undefined}>
                         {notice?.text ?? (activeTab === 'agents' ? 'Clique para adicionar ao mapa' : 'Selecione um agente para ver habilidades')}
                     </SectionTitle>
-                    <SideCounter>
-                        {['attack', 'defense'].map(side => (
-                            <span key={side} className={side} data-full={isSideFull(side)}>
-                                {side === 'attack' ? 'Ataque' : 'Defesa'} {countSide(side)}/{MAX_AGENTS_PER_SIDE}
-                            </span>
+
+                    <AgentsGrid>
+                        {roleGroups.map(({ role, agents: roleAgents }) => (
+                            <RoleGroup key={role}>
+                                <span>{role}</span>
+                                <div>
+                                    {roleAgents.map((agent) => (
+                                        <AgentButton
+                                            key={agent.id}
+                                            $isSelected={activeTab === 'skills' && selectedAgentId === agent.id}
+                                            onClick={() => handleAgentClick(agent)}
+                                            title={activeTab === 'agents' ? `Adicionar ${agent.name}` : agent.name}
+                                        >
+                                            <img src={agent.icon} alt={agent.name} />
+                                        </AgentButton>
+                                    ))}
+                                </div>
+                            </RoleGroup>
                         ))}
-                    </SideCounter>
-                </SectionRow>
+                    </AgentsGrid>
 
-                <CompSummary placedItems={placedItems} agents={agents} />
-                <AgentsGrid>
-                    {roleGroups.map(({ role, agents: roleAgents }) => (
-                        <RoleGroup key={role}>
-                            <span>{role}</span>
-                            <div>
-                                {roleAgents.map((agent) => (
-                                    <AgentButton
-                                        key={agent.id}
-                                        $isSelected={activeTab === 'skills' && selectedAgentId === agent.id}
-                                        onClick={() => handleAgentClick(agent)}
-                                        title={activeTab === 'agents' ? `Adicionar ${agent.name}` : agent.name}
-                                    >
-                                        <img src={agent.icon} alt={agent.name} />
-                                    </AgentButton>
-                                ))}
-                            </div>
-                        </RoleGroup>
-                    ))}
-                </AgentsGrid>
+                    {activeTab === 'skills' && selectedAgent && (
+                        <SkillsPanel $isVisible>
+                            <SkillsPanelHeader>
+                                <img src={selectedAgent.portrait} alt={selectedAgent.name} />
+                                <span>{selectedAgent.name}</span>
+                                <button onClick={() => handleRemoveAgentItems(selectedAgent.id)}>
+                                    Remover do {selectedAgent.name}
+                                </button>
+                            </SkillsPanelHeader>
+                            {selectedAgent.skills.length > 0 ? (
+                                <SkillsGrid>
+                                    {selectedAgent.skills.map((skill) => (
+                                        <SkillButton
+                                            key={skill.id}
+                                            onClick={() => handleSkillAdd(skill, selectedAgent)}
+                                            title={`Adicionar ${skill.name}`}
+                                        >
+                                            <img src={skill.img} alt={skill.name} />
+                                            {skill.key && <kbd>{skill.key}</kbd>}
+                                            <small>{skill.name}</small>
+                                        </SkillButton>
+                                    ))}
+                                </SkillsGrid>
+                            ) : (
+                                <EmptyMessage>Nenhuma habilidade disponível para {selectedAgent.name}.</EmptyMessage>
+                            )}
+                        </SkillsPanel>
+                    )}
+                </SidePanel>
 
-                {activeTab === 'skills' && selectedAgent && (
-                    <SkillsPanel $isVisible>
-                        <SkillsPanelHeader>
-                            <img src={selectedAgent.portrait} alt={selectedAgent.name} />
-                            <span>{selectedAgent.name}</span>
-                            <button onClick={() => handleRemoveAgentItems(selectedAgent.id)}>
-                                Remover do {selectedAgent.name}
-                            </button>
-                        </SkillsPanelHeader>
-                        {selectedAgent.skills.length > 0 ? (
-                            <SkillsGrid>
-                                {selectedAgent.skills.map((skill) => (
-                                    <SkillButton
-                                        key={skill.id}
-                                        onClick={() => handleSkillAdd(skill, selectedAgent)}
-                                        title={`Adicionar ${skill.name}`}
-                                    >
-                                        <img src={skill.img} alt={skill.name} />
-                                        {skill.key && <kbd>{skill.key}</kbd>}
-                                        <small>{skill.name}</small>
-                                    </SkillButton>
-                                ))}
-                            </SkillsGrid>
-                        ) : (
-                            <EmptyMessage>Nenhuma habilidade disponível para {selectedAgent.name}.</EmptyMessage>
-                        )}
-                    </SkillsPanel>
-                )}
+                <SidePanel $area="left">
+                    <SectionRow>
+                        <SectionTitle>Composição</SectionTitle>
+                        <SideCounter>
+                            {['attack', 'defense'].map(side => (
+                                <span key={side} className={side} data-full={isSideFull(side)}>
+                                    {side === 'attack' ? 'Ataque' : 'Defesa'} {countSide(side)}/{MAX_AGENTS_PER_SIDE}
+                                </span>
+                            ))}
+                        </SideCounter>
+                    </SectionRow>
+
+                    {countSide('attack') + countSide('defense') > 0
+                        ? <CompSummary placedItems={placedItems} agents={agents} />
+                        : <EmptyMessage>Adicione agentes para ver as funções de cada time.</EmptyMessage>}
+
+                    {selectedItem && showAllWeapons && (
+                        <WeaponPicker
+                            item={selectedItem}
+                            agent={agents.find(agent => agent.id === selectedItem.agentId)}
+                            weapons={weapons}
+                            onSelect={(weapon) => updateSelectedItem({ weapon })}
+                            onClose={() => setShowAllWeapons(false)}
+                        />
+                    )}
+
+                </SidePanel>
             </FooterBar>
         </Workspace>
     )

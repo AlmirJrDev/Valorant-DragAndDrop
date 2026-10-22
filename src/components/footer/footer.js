@@ -2,34 +2,40 @@ import styled from "styled-components";
 
 export const SIDE_COLORS = { attack: '#ff4655', defense: '#17a29a' }
 
-// From this width the panel (agents, abilities, comp) sits beside the map instead of below it
+// From this width the map is centered with one panel on each side of it
 const WIDE = '@media (min-width: 1600px)'
 // Space taken by the header on wide screens (one row of map buttons) plus the page gap
 const WIDE_HEADER_SPACE = '110px'
-const WIDE_PANEL_WIDTH = '600px'
+// Narrowest the side panels get; the map shrinks first to keep them usable
+const WIDE_PANEL_MIN = '340px'
+const WIDE_GAP = '1.5rem'
 
-// Map + panel. Stacked by default, side by side on wide screens
+// Map + panels. Stacked by default; on wide screens a 3-column grid:
+// composition | map | agents and abilities
 export const Workspace = styled.main`
     display: flex;
     flex-direction: column;
     gap: 1rem;
 
     ${WIDE} {
-        flex-direction: row;
-        align-items: flex-start;
-        justify-content: center;
-        gap: 1.5rem;
-        padding: 0 1.5rem;
+        display: grid;
+        grid-template-columns: minmax(${WIDE_PANEL_MIN}, 1fr) auto minmax(${WIDE_PANEL_MIN}, 1fr);
+        grid-template-areas: "left map right";
+        align-items: start;
+        gap: ${WIDE_GAP};
+        padding: 0 ${WIDE_GAP};
     }
 `
 const sideColor = (side, fallback = SIDE_COLORS.attack) => SIDE_COLORS[side] ?? fallback
 
+// Holds both panels below the map; on wide screens it steps aside (display: contents)
+// so each panel becomes its own column of the grid
 export const FooterBar = styled.footer`
     background: #232323;
     padding: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
     max-height: 45vh;
     overflow-y: auto;
 
@@ -39,11 +45,23 @@ export const FooterBar = styled.footer`
     }
 
     ${WIDE} {
-        flex: 1;
-        max-width: ${WIDE_PANEL_WIDTH};
+        display: contents;
+    }
+`
+
+export const SidePanel = styled.section`
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    ${WIDE} {
+        grid-area: ${props => props.$area};
+        background: #232323;
+        border-radius: 8px;
+        padding: 1rem;
         max-height: calc(100vh - ${WIDE_HEADER_SPACE});
         max-height: calc(100dvh - ${WIDE_HEADER_SPACE});
-        border-radius: 8px;
+        overflow-y: auto;
     }
 `
 
@@ -271,10 +289,12 @@ export const MapContainer = styled.div`
         min-width: 0;
     }
 
-    /* Beside the panel: as tall as the screen allows, leaving room for the panel */
+    /* Center column: as tall as the screen allows, leaving room for both side panels
+       (2 panels + 2 gaps + 2 side paddings) */
     ${WIDE} {
-        width: min(calc(100vh - ${WIDE_HEADER_SPACE}), calc(100vw - ${WIDE_PANEL_WIDTH} - 4.5rem));
-        width: min(calc(100dvh - ${WIDE_HEADER_SPACE}), calc(100vw - ${WIDE_PANEL_WIDTH} - 4.5rem));
+        grid-area: map;
+        width: min(calc(100vh - ${WIDE_HEADER_SPACE}), calc(100vw - 2 * ${WIDE_PANEL_MIN} - 4 * ${WIDE_GAP}));
+        width: min(calc(100dvh - ${WIDE_HEADER_SPACE}), calc(100vw - 2 * ${WIDE_PANEL_MIN} - 4 * ${WIDE_GAP}));
         margin: 0;
     }
 `

@@ -24,7 +24,8 @@ import {
     MapContent,
     ZoomLevel,
     SectionRow,
-    SideCounter
+    SideCounter,
+    Workspace
 } from "./footer.js"
 
 import { AbilityShapes } from "./AbilityShapes.jsx"
@@ -427,7 +428,7 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
     }, [])
 
     return (
-        <>
+        <Workspace>
             <MapContainer ref={viewportRef} $isZoomed={view.zoom > 1}>
                 <MapContent
                     ref={mapRef}
@@ -629,6 +630,6 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
                     </SkillsPanel>
                 )}
             </FooterBar>
-        </>
+        </Workspace>
     )
 }

@@ -1,6 +1,27 @@
 import styled from "styled-components";
 
 export const SIDE_COLORS = { attack: '#ff4655', defense: '#17a29a' }
+
+// From this width the panel (agents, abilities, comp) sits beside the map instead of below it
+const WIDE = '@media (min-width: 1600px)'
+// Space taken by the header on wide screens (one row of map buttons) plus the page gap
+const WIDE_HEADER_SPACE = '110px'
+const WIDE_PANEL_WIDTH = '600px'
+
+// Map + panel. Stacked by default, side by side on wide screens
+export const Workspace = styled.main`
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    ${WIDE} {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 1.5rem;
+        padding: 0 1.5rem;
+    }
+`
 const sideColor = (side, fallback = SIDE_COLORS.attack) => SIDE_COLORS[side] ?? fallback
 
 export const FooterBar = styled.footer`
@@ -15,6 +36,14 @@ export const FooterBar = styled.footer`
     @media (max-width: 768px) {
         padding: 0.75rem;
         max-height: 50vh;
+    }
+
+    ${WIDE} {
+        flex: 1;
+        max-width: ${WIDE_PANEL_WIDTH};
+        max-height: calc(100vh - ${WIDE_HEADER_SPACE});
+        max-height: calc(100dvh - ${WIDE_HEADER_SPACE});
+        border-radius: 8px;
     }
 `
 
@@ -240,6 +269,13 @@ export const MapContainer = styled.div`
     @media (max-width: 768px) {
         width: 95vw;
         min-width: 0;
+    }
+
+    /* Beside the panel: as tall as the screen allows, leaving room for the panel */
+    ${WIDE} {
+        width: min(calc(100vh - ${WIDE_HEADER_SPACE}), calc(100vw - ${WIDE_PANEL_WIDTH} - 4.5rem));
+        width: min(calc(100dvh - ${WIDE_HEADER_SPACE}), calc(100vw - ${WIDE_PANEL_WIDTH} - 4.5rem));
+        margin: 0;
     }
 `
 

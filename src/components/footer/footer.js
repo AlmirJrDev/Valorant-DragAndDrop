@@ -263,20 +263,22 @@ export const DraggableItem = styled.div`
     }
 
     img {
-        width: ${props => props.$isAgent ? '36px' : '30px'};
-        height: ${props => props.$isAgent ? '36px' : '30px'};
         pointer-events: none;
         filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-        ${props => !props.$isAgent && `
-            padding: 4px;
-            border-radius: 50%;
-            background: rgba(26, 26, 26, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-        `}
+    }
+
+    /* Skill icons (agents are wrapped in PlacedAgentIcon) */
+    > img {
+        width: 30px;
+        height: 30px;
+        padding: 4px;
+        border-radius: 50%;
+        background: rgba(26, 26, 26, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.25);
 
         @media (max-width: 768px) {
-            width: ${props => props.$isAgent ? '32px' : '26px'};
-            height: ${props => props.$isAgent ? '32px' : '26px'};
+            width: 26px;
+            height: 26px;
         }
     }
 
@@ -291,7 +293,8 @@ export const DraggableItem = styled.div`
 
 export const PlacedAgentIcon = styled.div`
     background: rgba(26, 26, 26, 0.9);
-    border: 2px solid #ff4655;
+    border: 2px solid ${props => props.$isSelected ? '#ece8e1' : '#ff4655'};
+    box-shadow: ${props => props.$isSelected ? '0 0 0 3px rgba(236, 232, 225, 0.35)' : 'none'};
     border-radius: 50%;
     padding: 4px;
     display: flex;
@@ -356,4 +359,151 @@ export const SectionTitle = styled.h3`
     letter-spacing: 1px;
     margin: 0 0 0.25rem 0;
     padding-left: 0.25rem;
+`
+
+export const WeaponTag = styled.div`
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(26, 26, 26, 0.85);
+    border-radius: 4px;
+    padding: 2px 4px;
+    display: flex;
+
+    img {
+        width: 44px;
+        height: 14px;
+        object-fit: contain;
+    }
+`
+
+export const MapToolbar = styled.div`
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+    z-index: 30;
+
+    button {
+        background: rgba(26, 26, 26, 0.85);
+        border: 1px solid #3a3a3a;
+        color: #fff;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.75rem;
+
+        &:hover {
+            border-color: #ff4655;
+        }
+    }
+`
+
+export const CalloutLayer = styled.div`
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+`
+
+const calloutBase = `
+    position: absolute;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    user-select: none;
+`
+
+export const RegionLabel = styled.span`
+    ${calloutBase}
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 500;
+    text-shadow: 0 0 3px #000, 0 0 2px #000;
+    opacity: 0.85;
+
+    @media (max-width: 768px) {
+        font-size: 0.5rem;
+    }
+`
+
+export const SiteLabel = styled.span`
+    ${calloutBase}
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 70, 85, 0.9);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+`
+
+export const SpawnLabel = styled.span`
+    ${calloutBase}
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #fff;
+    background: ${props => props.$side === 'attack' ? 'rgba(255, 70, 85, 0.9)' : 'rgba(23, 162, 154, 0.9)'};
+`
+
+export const WeaponCategory = styled.div`
+    margin-top: 0.75rem;
+
+    > span {
+        display: block;
+        color: #888;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.4rem;
+    }
+`
+
+export const WeaponGrid = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+`
+
+export const WeaponButton = styled.button`
+    background: ${props => props.$isSelected ? 'rgba(255, 70, 85, 0.2)' : '#2a2a2a'};
+    border: 2px solid ${props => props.$isSelected ? '#ff4655' : '#3a3a3a'};
+    border-radius: 6px;
+    padding: 6px 8px;
+    min-width: 92px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    color: #ccc;
+    transition: border-color 0.15s ease;
+
+    &:hover {
+        border-color: #ff4655;
+    }
+
+    img {
+        width: 72px;
+        height: 22px;
+        object-fit: contain;
+    }
+
+    span {
+        font-size: 0.7rem;
+    }
+
+    small {
+        font-size: 0.6rem;
+        color: #888;
+    }
 `

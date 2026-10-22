@@ -13,31 +13,41 @@ export const createId = () => `${Date.now()}-${Math.random().toString(36).slice(
 
 const round = (value) => Math.round(value * 10) / 10
 
-function serialize({ mapId, items }) {
+// Item format: [type, agentId | skillId, x, y, rotation, weaponId?]
+// "o" (map orientation) and the weapon id were added later and are optional,
+// so links created before them still open.
+function serialize({ mapId, mapRotation, items }) {
     return {
         v: VERSION,
         m: mapId,
-        i: items.map(item => [
-            item.type === "agent" ? "a" : "s",
-            item.type === "agent" ? item.agentId : item.skillId,
-            round(item.x),
-            round(item.y),
-            item.rotation || 0
-        ])
+        o: mapRotation,
+        i: items.map(item => {
+            const entry = [
+                item.type === "agent" ? "a" : "s",
+                item.type === "agent" ? item.agentId : item.skillId,
+                round(item.x),
+                round(item.y),
+                item.rotation || 0
+            ]
+            if (item.weapon) entry.push(item.weapon.id)
+            return entry
+        })
     }
 }
 
-function deserialize(data, agents) {
+function deserialize(data, agents, weapons) {
     if (!data || data.v !== VERSION || !Array.isArray(data.i)) return null
 
     const agentById = new Map(agents.map(agent => [agent.id, agent]))
     const skillById = new Map(agents.flatMap(agent => agent.skills.map(skill => [skill.id, { skill, agent }])))
+    const weaponById = new Map(weapons.map(weapon => [weapon.id, weapon]))
 
-    const items = data.i.flatMap(([type, ref, x, y, rotation]) => {
+    const items = data.i.flatMap(([type, ref, x, y, rotation, weaponId]) => {
         const base = { id: createId(), x: Number(x) || 50, y: Number(y) || 50, rotation: Number(rotation) || 0 }
         if (type === "a" && agentById.has(ref)) {
             const agent = agentById.get(ref)
-            return [{ ...base, type: "agent", img: agent.icon, name: agent.name, agentId: agent.id }]
+            const weapon = weaponById.get(weaponId) ?? null
+            return [{ ...base, type: "agent", img: agent.icon, name: agent.name, agentId: agent.id, weapon }]
         }
         if (type === "s" && skillById.has(ref)) {
             const { skill, agent } = skillById.get(ref)
@@ -47,7 +57,8 @@ function deserialize(data, agents) {
         return []
     })
 
-    return { mapId: data.m ?? null, items }
+    const mapRotation = [0, 90, 180, 270].includes(data.o) ? data.o : null
+    return { mapId: data.m ?? null, mapRotation, items }
 }
 
 const toBase64Url = (text) => btoa(unescape(encodeURIComponent(text)))
@@ -84,15 +95,17 @@ function clearHash() {
 }
 
 // Loads the strategy from a shared link first, then from the last autosave.
-// Must only be called once the agents are loaded, so ids can be resolved.
-export function useStrategy(agents) {
+// Must only be called once the game data is loaded, so ids can be resolved.
+// mapRotation null means "automatic" (attackers at the bottom).
+export function useStrategy(agents, weapons) {
     const initial = useMemo(() => {
-        const fromLink = deserialize(readFromHash(), agents)
+        const fromLink = deserialize(readFromHash(), agents, weapons)
         if (fromLink) return { ...fromLink, fromLink: true }
-        return deserialize(readFromStorage(), agents) ?? { mapId: null, items: [] }
-    }, [agents])
+        return deserialize(readFromStorage(), agents, weapons) ?? { mapId: null, mapRotation: null, items: [] }
+    }, [agents, weapons])
 
     const [mapId, setMapId] = useState(initial.mapId)
+    const [mapRotation, setMapRotation] = useState(initial.mapRotation)
     const [items, setItems] = useState(initial.items)
     const [loadedFromLink, setLoadedFromLink] = useState(Boolean(initial.fromLink))
 
@@ -105,17 +118,19 @@ export function useStrategy(agents) {
     useEffect(() => {
         const timeout = setTimeout(() => {
             try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(serialize({ mapId, items })))
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(serialize({ mapId, mapRotation, items })))
             } catch {
                 // Storage can be full or blocked (private mode); the app keeps working without it
             }
         }, 300)
         return () => clearTimeout(timeout)
-    }, [mapId, items])
+    }, [mapId, mapRotation, items])
 
     return {
         mapId,
         setMapId,
+        mapRotation,
+        setMapRotation,
         items,
         setItems,
         loadedFromLink,

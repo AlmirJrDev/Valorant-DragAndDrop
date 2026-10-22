@@ -18,10 +18,17 @@ import {
     PlacedAgentIcon,
     ClearButton,
     EmptyMessage,
-    RoleGroup
+    RoleGroup,
+    MapToolbar,
+    WeaponTag
 } from "./footer.js"
 
+import { MapCallouts } from "./MapCallouts.jsx"
+import { WeaponPicker } from "./WeaponPicker.jsx"
 import { createId } from "../../strategy.js"
+
+// Pointer movement (px) below which a press on an agent counts as a click, not a drag
+const CLICK_TOLERANCE = 4
 
 const clamp = (value) => Math.max(0, Math.min(100, value))
 
@@ -36,8 +43,10 @@ const groupByRole = (agents) => agents.reduce((groups, agent) => {
 }, [])
 
 // placedItems (agents or skills on the map) live in App so they can be saved and shared
-export function Footer({ agents, currentMap, placedItems, setPlacedItems }) {
+export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, placedItems, setPlacedItems }) {
     const [selectedAgentId, setSelectedAgentId] = useState(null)
+    const [selectedItemId, setSelectedItemId] = useState(null) // agent on the map whose weapon is being picked
+    const [showRegions, setShowRegions] = useState(true)
     const [activeTab, setActiveTab] = useState('agents') // 'agents' or 'skills'
     const [draggingId, setDraggingId] = useState(null)
     const [isOverDelete, setIsOverDelete] = useState(false)
@@ -46,7 +55,12 @@ export function Footer({ agents, currentMap, placedItems, setPlacedItems }) {
     const stopDragRef = useRef(null)
 
     const selectedAgent = agents.find(agent => agent.id === selectedAgentId)
+    const selectedItem = placedItems.find(item => item.id === selectedItemId && item.type === 'agent')
     const roleGroups = groupByRole(agents)
+
+    const handleWeaponSelect = (weapon) => {
+        setPlacedItems(prev => prev.map(item => item.id === selectedItemId ? { ...item, weapon } : item))
+    }
 
     // New items spawn in a small spiral around the center so they don't stack on top of each other
     const addItem = (item) => {
@@ -115,10 +129,14 @@ export function Footer({ agents, currentMap, placedItems, setPlacedItems }) {
 
         const start = getMapPosition(e.clientX, e.clientY)
         const offset = { x: start.x - item.x, y: start.y - item.y }
+        const startClient = { x: e.clientX, y: e.clientY }
         let overDelete = false
+        let moved = false
 
         const handleMove = (ev) => {
             if (!mapRef.current) return
+            if (!moved && Math.hypot(ev.clientX - startClient.x, ev.clientY - startClient.y) < CLICK_TOLERANCE) return
+            moved = true
             const pos = getMapPosition(ev.clientX, ev.clientY)
             const x = clamp(pos.x - offset.x)
             const y = clamp(pos.y - offset.y)
@@ -140,6 +158,9 @@ export function Footer({ agents, currentMap, placedItems, setPlacedItems }) {
         const handleUp = () => {
             if (overDelete) {
                 setPlacedItems(prev => prev.filter(s => s.id !== item.id))
+            } else if (!moved && item.type === 'agent') {
+                // A simple click on an agent opens (or closes) its weapon picker
+                setSelectedItemId(current => current === item.id ? null : item.id)
             }
             stopDrag()
         }
@@ -176,7 +197,28 @@ export function Footer({ agents, currentMap, placedItems, setPlacedItems }) {
     return (
         <>
             <MapContainer ref={mapRef}>
-                {currentMap && <MapImage src={currentMap.img} alt={`Mapa ${currentMap.name}`} draggable={false} />}
+                {currentMap && (
+                    <>
+                        <MapImage
+                            src={currentMap.img}
+                            alt={`Mapa ${currentMap.name}`}
+                            draggable={false}
+                            style={{ transform: `translate(-50%, -50%) rotate(${mapRotation}deg)` }}
+                        />
+                        <MapCallouts callouts={currentMap.callouts} rotation={mapRotation} showRegions={showRegions} />
+                    </>
+                )}
+
+                <MapToolbar onPointerDown={(e) => e.stopPropagation()}>
+                    <button onClick={onRotateMap} title="Girar o mapa 90° (os itens giram junto)">⟳ Girar</button>
+                    <button
+                        onClick={() => setShowRegions(show => !show)}
+                        aria-pressed={showRegions}
+                        title="Mostrar ou esconder os nomes das regiões"
+                    >
+                        {showRegions ? 'Ocultar nomes' : 'Mostrar nomes'}
+                    </button>
+                </MapToolbar>
 
                 {placedItems.map((item) => (
                     <DraggableItem
@@ -191,12 +233,19 @@ export function Footer({ agents, currentMap, placedItems, setPlacedItems }) {
                         onContextMenu={(e) => { e.preventDefault(); handleRemoveItem(item.id) }}
                         title={item.type === 'skill'
                             ? `${item.name} · arraste para mover · rodinha do mouse para girar · duplo clique para remover`
-                            : `${item.name} · arraste para mover · duplo clique para remover`}
+                            : `${item.name}${item.weapon ? ` (${item.weapon.name})` : ''} · clique para escolher a arma · arraste para mover · duplo clique para remover`}
                     >
                         {item.type === 'agent' ? (
-                            <PlacedAgentIcon>
-                                <img src={item.img} alt={item.name} draggable={false} />
-                            </PlacedAgentIcon>
+                            <>
+                                <PlacedAgentIcon $isSelected={selectedItemId === item.id}>
+                                    <img src={item.img} alt={item.name} draggable={false} />
+                                </PlacedAgentIcon>
+                                {item.weapon && (
+                                    <WeaponTag>
+                                        <img src={item.weapon.img} alt={item.weapon.name} draggable={false} />
+                                    </WeaponTag>
+                                )}
+                            </>
                         ) : (
                             <img src={item.img} alt={item.name} draggable={false} />
                         )}
@@ -209,6 +258,16 @@ export function Footer({ agents, currentMap, placedItems, setPlacedItems }) {
             </MapContainer>
 
             <FooterBar>
+                {selectedItem && (
+                    <WeaponPicker
+                        item={selectedItem}
+                        agent={agents.find(agent => agent.id === selectedItem.agentId)}
+                        weapons={weapons}
+                        onSelect={handleWeaponSelect}
+                        onClose={() => setSelectedItemId(null)}
+                    />
+                )}
+
                 <TabsContainer>
                     <Tab
                         $isActive={activeTab === 'agents'}

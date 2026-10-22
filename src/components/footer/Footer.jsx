@@ -241,7 +241,7 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
                                     <img src={item.img} alt={item.name} draggable={false} />
                                 </PlacedAgentIcon>
                                 {item.weapon && (
-                                    <WeaponTag>
+                                    <WeaponTag $isAbility={item.weapon.isWeapon}>
                                         <img src={item.weapon.img} alt={item.weapon.name} draggable={false} />
                                     </WeaponTag>
                                 )}

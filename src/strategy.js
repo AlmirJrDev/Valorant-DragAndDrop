@@ -46,7 +46,10 @@ function deserialize(data, agents, weapons) {
         const base = { id: createId(), x: Number(x) || 50, y: Number(y) || 50, rotation: Number(rotation) || 0 }
         if (type === "a" && agentById.has(ref)) {
             const agent = agentById.get(ref)
-            const weapon = weaponById.get(weaponId) ?? null
+            // The weapon can also be one of the agent's own abilities (e.g. Jett's knives)
+            const weapon = weaponById.get(weaponId)
+                ?? agent.skills.find(skill => skill.isWeapon && skill.id === weaponId)
+                ?? null
             return [{ ...base, type: "agent", img: agent.icon, name: agent.name, agentId: agent.id, weapon }]
         }
         if (type === "s" && skillById.has(ref)) {

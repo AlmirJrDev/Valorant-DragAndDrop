@@ -372,8 +372,8 @@ export const WeaponTag = styled.div`
     display: flex;
 
     img {
-        width: 44px;
-        height: 14px;
+        width: ${props => props.$isAbility ? "16px" : "44px"};
+        height: ${props => props.$isAbility ? "16px" : "14px"};
         object-fit: contain;
     }
 `
@@ -493,8 +493,8 @@ export const WeaponButton = styled.button`
     }
 
     img {
-        width: 72px;
-        height: 22px;
+        width: ${props => props.$isAbility ? "26px" : "72px"};
+        height: ${props => props.$isAbility ? "26px" : "22px"};
         object-fit: contain;
     }
 

@@ -12,6 +12,16 @@ const SLOT_ORDER = ["Grenade", "Ability1", "Ability2", "Ultimate"]
 
 const ROLE_ORDER = ["Duelista", "Iniciador", "Controlador", "Sentinela"]
 
+// Abilities that replace the agent's gun, so they can be picked as the agent's weapon.
+// The API has no flag for this; ids are `${agentUuid}-${slot}`.
+const WEAPON_ABILITIES = new Set([
+    "add6443a-41bd-e414-f6ad-e58d267f4e95-Ultimate", // Jett: Blade Storm
+    "22697a3d-45bf-8dd7-4fec-84a9e28c69d7-Ability1", // Chamber: Headhunter
+    "22697a3d-45bf-8dd7-4fec-84a9e28c69d7-Ultimate", // Chamber: Tour De Force
+    "f94c3b30-42be-e959-889c-5aa313dba261-Ultimate", // Raze: Showstopper
+    "bb2a4828-46eb-8cd1-e765-15848195d751-Ultimate"  // Neon: Overdrive
+])
+
 async function fetchJson(path) {
     const response = await fetch(`${API_URL}${path}`)
     if (!response.ok) throw new Error(`Erro ${response.status} ao buscar ${path}`)
@@ -23,12 +33,16 @@ function toAgent(agent) {
     const skills = agent.abilities
         .filter(ability => SLOT_KEYS[ability.slot] && ability.displayIcon)
         .sort((a, b) => SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot))
-        .map(ability => ({
-            id: `${agent.uuid}-${ability.slot}`,
-            name: ability.displayName,
-            key: SLOT_KEYS[ability.slot],
-            img: ability.displayIcon
-        }))
+        .map(ability => {
+            const id = `${agent.uuid}-${ability.slot}`
+            return {
+                id,
+                name: ability.displayName,
+                key: SLOT_KEYS[ability.slot],
+                img: ability.displayIcon,
+                isWeapon: WEAPON_ABILITIES.has(id)
+            }
+        })
 
     return {
         id: agent.uuid,

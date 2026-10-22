@@ -11,6 +11,7 @@ const groupByCategory = (weapons) => weapons.reduce((groups, weapon) => {
 
 export function WeaponPicker({ item, agent, weapons, onSelect, onClose }) {
     const panelRef = useRef(null)
+    const abilityWeapons = agent?.skills.filter(skill => skill.isWeapon) ?? []
 
     // The footer can be scrolled away; bring the picker into view when an agent is clicked
     useEffect(() => {
@@ -30,6 +31,27 @@ export function WeaponPicker({ item, agent, weapons, onSelect, onClose }) {
                     <span>Sem arma</span>
                 </WeaponButton>
             </WeaponGrid>
+
+            {abilityWeapons.length > 0 && (
+                <WeaponCategory>
+                    <span>Habilidades de {item.name}</span>
+                    <WeaponGrid>
+                        {abilityWeapons.map(skill => (
+                            <WeaponButton
+                                key={skill.id}
+                                $isAbility
+                                $isSelected={item.weapon?.id === skill.id}
+                                onClick={() => onSelect(skill)}
+                                title={`${skill.name} (${skill.key})`}
+                            >
+                                <img src={skill.img} alt={skill.name} />
+                                <span>{skill.name}</span>
+                                <small>Habilidade {skill.key}</small>
+                            </WeaponButton>
+                        ))}
+                    </WeaponGrid>
+                </WeaponCategory>
+            )}
 
             {groupByCategory(weapons).map(({ category, weapons: categoryWeapons }) => (
                 <WeaponCategory key={category}>

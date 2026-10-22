@@ -1,8 +1,8 @@
 import Logo from '../../assets/valorantlogodrag.svg'
 
-import { HeaderBar, NavBar, MapButton, ResetButton } from './header.js'
+import { HeaderBar, NavBar, MapButton, ResetButton, ShareButton } from './header.js'
 
-export function Header({ maps, selectedMap, onMapChange, onReset }) {
+export function Header({ maps, selectedMap, onMapChange, onReset, onShare }) {
     return (
         <HeaderBar>
             <img src={Logo} alt="Valorant Drag and Drop" />
@@ -16,6 +16,9 @@ export function Header({ maps, selectedMap, onMapChange, onReset }) {
                         {map.name}
                     </MapButton>
                 ))}
+                <ShareButton onClick={onShare} title="Copiar link desta estratégia">
+                    Compartilhar
+                </ShareButton>
                 <ResetButton onClick={onReset}>
                     Limpar Tudo
                 </ResetButton>

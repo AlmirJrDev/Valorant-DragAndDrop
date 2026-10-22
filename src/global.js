@@ -80,3 +80,19 @@ export const StatusScreen = styled.div`
         cursor: pointer;
     }
 `
+
+export const Toast = styled.div`
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ff4655;
+    color: #fff;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    max-width: calc(100vw - 2rem);
+    text-align: center;
+`

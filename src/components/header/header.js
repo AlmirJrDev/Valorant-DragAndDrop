@@ -79,3 +79,26 @@ export const ResetButton = styled.button`
         font-size: 0.75rem;
     }
 `
+
+export const ShareButton = styled.button`
+    background: #ece8e1;
+    border: 2px solid #ece8e1;
+    color: #1a1a1a;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+
+    &:hover {
+        background: #fff;
+        border-color: #fff;
+    }
+
+    @media (max-width: 768px) {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+    }
+`

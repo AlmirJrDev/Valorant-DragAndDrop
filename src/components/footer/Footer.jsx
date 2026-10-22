@@ -21,9 +21,9 @@ import {
     RoleGroup
 } from "./footer.js"
 
-const clamp = (value) => Math.max(0, Math.min(100, value))
+import { createId } from "../../strategy.js"
 
-const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+const clamp = (value) => Math.max(0, Math.min(100, value))
 
 const ROTATION_STEP = 15
 
@@ -35,10 +35,10 @@ const groupByRole = (agents) => agents.reduce((groups, agent) => {
     return groups
 }, [])
 
-export function Footer({ agents, currentMap }) {
+// placedItems (agents or skills on the map) live in App so they can be saved and shared
+export function Footer({ agents, currentMap, placedItems, setPlacedItems }) {
     const [selectedAgentId, setSelectedAgentId] = useState(null)
     const [activeTab, setActiveTab] = useState('agents') // 'agents' or 'skills'
-    const [placedItems, setPlacedItems] = useState([]) // items can be agents or skills
     const [draggingId, setDraggingId] = useState(null)
     const [isOverDelete, setIsOverDelete] = useState(false)
     const mapRef = useRef(null)
@@ -73,7 +73,7 @@ export function Footer({ agents, currentMap }) {
     }
 
     const handleSkillAdd = (skill, agent) => {
-        addItem({ img: skill.img, type: 'skill', name: skill.name, agentId: agent.id })
+        addItem({ img: skill.img, type: 'skill', name: skill.name, agentId: agent.id, skillId: skill.id })
     }
 
     const handleRemoveAgentItems = (agentId) => {
@@ -171,7 +171,7 @@ export function Footer({ agents, currentMap }) {
 
         map.addEventListener('wheel', handleWheel, { passive: false })
         return () => map.removeEventListener('wheel', handleWheel)
-    }, [])
+    }, [setPlacedItems])
 
     return (
         <>

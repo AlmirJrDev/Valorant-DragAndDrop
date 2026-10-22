@@ -22,11 +22,14 @@ import {
     MapToolbar,
     WeaponBadge,
     MapContent,
-    ZoomLevel
+    ZoomLevel,
+    SectionRow,
+    SideCounter
 } from "./footer.js"
 
 import { AbilityShapes } from "./AbilityShapes.jsx"
 import { AgentPopover } from "./AgentPopover.jsx"
+import { CompSummary } from "./CompSummary.jsx"
 import { MapCallouts } from "./MapCallouts.jsx"
 import { WeaponPicker } from "./WeaponPicker.jsx"
 import { createId } from "../../strategy.js"
@@ -51,6 +54,9 @@ const CLICK_TOLERANCE = 4
 const clamp = (value) => Math.max(0, Math.min(100, value))
 
 const ROTATION_STEP = 15
+
+const MAX_AGENTS_PER_SIDE = 5
+const SPIKE_ID = "spike"
 
 const MIN_ZOOM = 1
 const MAX_ZOOM = 4
@@ -102,6 +108,19 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
 
     // Map % per game meter, used to draw abilities at their real size
     const metersToPercent = currentMap?.metersToPercent ?? 0.7
+
+    // Each team has at most 5 agents, like in the game (the spike isn't an agent)
+    const countSide = (side) => placedItems
+        .filter(item => item.type === 'agent' && item.agentId !== SPIKE_ID && item.side === side).length
+    const isSideFull = (side) => countSide(side) >= MAX_AGENTS_PER_SIDE
+
+    const [notice, setNotice] = useState(null)
+    const showNotice = (text) => setNotice({ text, at: Date.now() })
+    useEffect(() => {
+        if (!notice) return
+        const timeout = setTimeout(() => setNotice(null), 3500)
+        return () => clearTimeout(timeout)
+    }, [notice])
 
     const zoomBy = (factor) => {
         const size = frameSize()
@@ -222,7 +241,16 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
 
     const handleAgentClick = (agent) => {
         if (activeTab === 'agents') {
-            addItem({ img: agent.icon, type: 'agent', name: agent.name, agentId: agent.id, side: 'attack' })
+            // New agents join attack; when it's full they go to defense (the spike doesn't count)
+            const side = agent.id === SPIKE_ID || !isSideFull('attack') ? 'attack'
+                : !isSideFull('defense') ? 'defense'
+                : null
+            if (!side) {
+                showNotice(`Os dois times já têm ${MAX_AGENTS_PER_SIDE} agentes. Remova um para adicionar outro.`)
+                return
+            }
+            if (side === 'defense') showNotice(`Ataque já tem ${MAX_AGENTS_PER_SIDE} agentes: ${agent.name} entrou na defesa.`)
+            addItem({ img: agent.icon, type: 'agent', name: agent.name, agentId: agent.id, side })
         } else {
             // Show skills panel
             setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id)
@@ -467,6 +495,9 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
                             item={selectedItem}
                             agent={agents.find(agent => agent.id === selectedItem.agentId)}
                             weapons={weapons}
+                            // Can't move into a full team (the spike has no team limit)
+                            fullSides={selectedItem.agentId === SPIKE_ID ? [] : ['attack', 'defense']
+                                .filter(side => side !== selectedItem.side && isSideFull(side))}
                             onSideChange={(side) => {
                                 // The agent's own skills follow its side color
                                 setPlacedItems(prev => prev.map(s =>
@@ -535,9 +566,20 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
                     )}
                 </TabsContainer>
 
-                <SectionTitle>
-                    {activeTab === 'agents' ? 'Clique para adicionar ao mapa' : 'Selecione um agente para ver habilidades'}
-                </SectionTitle>
+                <SectionRow>
+                    <SectionTitle $isNotice={Boolean(notice)} role={notice ? 'status' : undefined}>
+                        {notice?.text ?? (activeTab === 'agents' ? 'Clique para adicionar ao mapa' : 'Selecione um agente para ver habilidades')}
+                    </SectionTitle>
+                    <SideCounter>
+                        {['attack', 'defense'].map(side => (
+                            <span key={side} className={side} data-full={isSideFull(side)}>
+                                {side === 'attack' ? 'Ataque' : 'Defesa'} {countSide(side)}/{MAX_AGENTS_PER_SIDE}
+                            </span>
+                        ))}
+                    </SideCounter>
+                </SectionRow>
+
+                <CompSummary placedItems={placedItems} agents={agents} />
                 <AgentsGrid>
                     {roleGroups.map(({ role, agents: roleAgents }) => (
                         <RoleGroup key={role}>

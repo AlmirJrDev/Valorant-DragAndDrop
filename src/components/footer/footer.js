@@ -367,12 +367,57 @@ export const EmptyMessage = styled.p`
 `
 
 export const SectionTitle = styled.h3`
-    color: #888;
+    color: ${props => props.$isNotice ? '#ff4655' : '#888'};
     font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    text-transform: ${props => props.$isNotice ? 'none' : 'uppercase'};
+    letter-spacing: ${props => props.$isNotice ? '0' : '1px'};
     margin: 0 0 0.25rem 0;
     padding-left: 0.25rem;
+`
+
+export const SectionRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+`
+
+// "Ataque 3/5 · Defesa 2/5", each count in its side color
+export const SideCounter = styled.div`
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+
+    span {
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid currentColor;
+    }
+
+    .attack {
+        color: ${SIDE_COLORS.attack};
+    }
+
+    .defense {
+        color: ${SIDE_COLORS.defense};
+    }
+
+    [data-full="true"] {
+        color: #fff;
+        background: currentColor;
+    }
+
+    .attack[data-full="true"] {
+        background: ${SIDE_COLORS.attack};
+        border-color: ${SIDE_COLORS.attack};
+    }
+
+    .defense[data-full="true"] {
+        background: ${SIDE_COLORS.defense};
+        border-color: ${SIDE_COLORS.defense};
+    }
 `
 
 // Small badge on the agent's bottom-right corner with the gun or weapon ability
@@ -624,6 +669,11 @@ export const SideToggle = styled.div`
         cursor: pointer;
     }
 
+    button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+
     .attack.active {
         background: ${SIDE_COLORS.attack};
         color: #fff;
@@ -719,4 +769,45 @@ export const ShapeHandle = styled.div`
     &:hover {
         background: ${props => props.$color};
     }
+`
+
+export const CompPanel = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.75rem;
+`
+
+export const CompSide = styled.div`
+    background: #1a1a1a;
+    border-left: 3px solid ${props => SIDE_COLORS[props.$side]};
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+
+    strong {
+        color: #fff;
+        font-size: 0.8rem;
+    }
+
+    > div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+`
+
+export const RoleChip = styled.span`
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    background: ${props => props.$isMissing ? 'transparent' : '#2a2a2a'};
+    border: 1px ${props => props.$isMissing ? 'dashed #f0b232' : 'solid #3a3a3a'};
+    color: ${props => props.$isMissing ? '#f0b232' : '#ccc'};
+`
+
+export const CompWarning = styled.span`
+    font-size: 0.7rem;
+    color: #f0b232;
 `

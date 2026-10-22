@@ -13,7 +13,7 @@ const QUICK_WEAPONS = ["Classic", "Sheriff", "Spectre", "Vandal", "Phantom", "Op
 // Items near the top edge get the menu below them so it isn't pushed off the map
 const OPEN_BELOW_THRESHOLD = 30
 
-export function AgentPopover({ item, agent, weapons, onSideChange, onAddSkill, onWeaponSelect, onShowAllWeapons, onRemove, onClose }) {
+export function AgentPopover({ item, agent, weapons, fullSides = [], onSideChange, onAddSkill, onWeaponSelect, onShowAllWeapons, onRemove, onClose }) {
     const abilityWeapons = agent?.skills.filter(skill => skill.isWeapon) ?? []
     const quickWeapons = QUICK_WEAPONS
         .map(name => weapons.find(weapon => weapon.name === name))
@@ -31,18 +31,20 @@ export function AgentPopover({ item, agent, weapons, onSideChange, onAddSkill, o
             <PopoverHeader>
                 <strong>{item.name}</strong>
                 <SideToggle>
-                    <button
-                        className={item.side === 'attack' ? 'active attack' : 'attack'}
-                        onClick={() => onSideChange('attack')}
-                    >
-                        Ataque
-                    </button>
-                    <button
-                        className={item.side === 'defense' ? 'active defense' : 'defense'}
-                        onClick={() => onSideChange('defense')}
-                    >
-                        Defesa
-                    </button>
+                    {[['attack', 'Ataque'], ['defense', 'Defesa']].map(([side, label]) => {
+                        const isFull = fullSides.includes(side)
+                        return (
+                            <button
+                                key={side}
+                                className={item.side === side ? `active ${side}` : side}
+                                disabled={isFull}
+                                title={isFull ? `${label} já tem 5 agentes` : undefined}
+                                onClick={() => onSideChange(side)}
+                            >
+                                {label}
+                            </button>
+                        )
+                    })}
                 </SideToggle>
                 <button className="close" onClick={onClose} title="Fechar">×</button>
             </PopoverHeader>

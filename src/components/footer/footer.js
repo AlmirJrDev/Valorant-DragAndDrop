@@ -220,25 +220,36 @@ export const SkillButton = styled.button`
     }
 `
 
+// Square map that fits the screen: as wide as possible without being taller than the
+// space left under the header. Clips the zoomed content, except at 100% so the agent
+// menu can overflow the edges.
 export const MapContainer = styled.div`
     position: relative;
-    width: 100%;
-    max-width: min(90vw, 800px);
+    width: min(92vw, calc(100vh - 150px), 900px);
+    width: min(92vw, calc(100dvh - 150px), 900px);
+    min-width: min(92vw, 320px);
     margin: 0 auto;
     aspect-ratio: 1 / 1;
     background: #252525;
-    overflow: visible;
+    overflow: ${props => props.$isZoomed ? 'hidden' : 'visible'};
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     flex-shrink: 0;
-
-    @media (max-height: 800px) {
-        max-width: min(85vw, 45vh);
-    }
+    touch-action: none;
 
     @media (max-width: 768px) {
-        max-width: min(95vw, 50vh);
+        width: 95vw;
+        min-width: 0;
     }
+`
+
+// Everything that zooms and pans with the map. --inv-zoom lets icons, labels and the
+// agent menu cancel the zoom so they keep their size on screen.
+export const MapContent = styled.div`
+    position: absolute;
+    inset: 0;
+    transform-origin: 0 0;
+    cursor: ${props => props.$isPanning ? 'grabbing' : props.$canPan ? 'grab' : 'default'};
 `
 
 export const MapImage = styled.img`
@@ -254,7 +265,7 @@ export const MapImage = styled.img`
 
 export const DraggableItem = styled.div`
     position: absolute;
-    transform: translate(-50%, -50%) rotate(var(--rotation, 0deg)) ${props => props.$isDragging ? 'scale(1.15)' : ''};
+    transform: translate(-50%, -50%) scale(var(--inv-zoom, 1)) rotate(var(--rotation, 0deg)) ${props => props.$isDragging ? 'scale(1.15)' : ''};
     cursor: ${props => props.$isDragging ? 'grabbing' : 'grab'};
     z-index: ${props => props.$isDragging ? 1000 : props.$isAgent ? 20 : 10};
     touch-action: none;
@@ -286,7 +297,7 @@ export const DraggableItem = styled.div`
     }
 
     &:hover {
-        transform: translate(-50%, -50%) rotate(var(--rotation, 0deg)) scale(${props => props.$isDragging ? 1.15 : 1.1});
+        transform: translate(-50%, -50%) scale(var(--inv-zoom, 1)) rotate(var(--rotation, 0deg)) scale(${props => props.$isDragging ? 1.15 : 1.1});
     }
 
     &:hover img {
@@ -387,6 +398,19 @@ export const WeaponBadge = styled.div`
     }
 `
 
+export const ZoomLevel = styled.span`
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3rem;
+    background: rgba(26, 26, 26, 0.85);
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #ccc;
+    font-size: 0.75rem;
+`
+
 export const MapToolbar = styled.div`
     position: absolute;
     top: 8px;
@@ -404,8 +428,13 @@ export const MapToolbar = styled.div`
         cursor: pointer;
         font-size: 0.75rem;
 
-        &:hover {
+        &:hover:not(:disabled) {
             border-color: #ff4655;
+        }
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: default;
         }
     }
 `
@@ -419,7 +448,7 @@ export const CalloutLayer = styled.div`
 
 const calloutBase = `
     position: absolute;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(var(--inv-zoom, 1));
     white-space: nowrap;
     user-select: none;
 `
@@ -522,7 +551,11 @@ export const Popover = styled.div`
     z-index: 1100;
     width: 290px;
     max-width: 90vw;
-    transform: ${props => props.$openBelow ? 'translate(-50%, 34px)' : 'translate(-50%, calc(-100% - 34px))'};
+    /* Scaled around the anchor point (the agent), so it keeps its size and gap on screen */
+    transform-origin: 0 0;
+    transform: scale(var(--inv-zoom, 1)) ${props => props.$openBelow
+        ? 'translate(-50%, 34px)'
+        : 'translate(-50%, calc(-100% - 34px))'};
     background: #1a1a1a;
     border: 1px solid #3a3a3a;
     border-radius: 10px;

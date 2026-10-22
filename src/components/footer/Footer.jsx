@@ -20,7 +20,9 @@ import {
     EmptyMessage,
     RoleGroup,
     MapToolbar,
-    WeaponBadge
+    WeaponBadge,
+    MapContent,
+    ZoomLevel
 } from "./footer.js"
 
 import { AgentPopover } from "./AgentPopover.jsx"
@@ -34,6 +36,28 @@ const CLICK_TOLERANCE = 4
 const clamp = (value) => Math.max(0, Math.min(100, value))
 
 const ROTATION_STEP = 15
+
+const MIN_ZOOM = 1
+const MAX_ZOOM = 4
+const BUTTON_ZOOM_STEP = 1.5
+const WHEEL_ZOOM_SPEED = 0.0015
+
+const INITIAL_VIEW = { zoom: 1, x: 0, y: 0 }
+
+// Keeps the zoomed map covering the whole frame (no empty borders when panning)
+function clampView({ zoom, x, y }, size) {
+    const z = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom))
+    const min = size - size * z
+    return { zoom: z, x: Math.min(0, Math.max(min, x)), y: Math.min(0, Math.max(min, y)) }
+}
+
+// Zooms keeping the map point under `point` (px inside the frame) in place
+function zoomAt(view, point, nextZoom, size) {
+    const z = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, nextZoom))
+    const contentX = (point.x - view.x) / view.zoom
+    const contentY = (point.y - view.y) / view.zoom
+    return clampView({ zoom: z, x: point.x - contentX * z, y: point.y - contentY * z }, size)
+}
 
 const groupByRole = (agents) => agents.reduce((groups, agent) => {
     const role = agent.role || "Outros"
@@ -52,9 +76,55 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
     const [activeTab, setActiveTab] = useState('agents') // 'agents' or 'skills'
     const [draggingId, setDraggingId] = useState(null)
     const [isOverDelete, setIsOverDelete] = useState(false)
-    const mapRef = useRef(null)
+    const [view, setView] = useState(INITIAL_VIEW) // map zoom and pan (px)
+    const [isPanning, setIsPanning] = useState(false)
+    const viewportRef = useRef(null) // fixed frame on screen
+    const mapRef = useRef(null) // zoomed content; positions in % are relative to it
     const deleteZoneRef = useRef(null)
     const stopDragRef = useRef(null)
+
+    const frameSize = () => viewportRef.current?.getBoundingClientRect().width ?? 0
+
+    const zoomBy = (factor) => {
+        const size = frameSize()
+        setView(v => zoomAt(v, { x: size / 2, y: size / 2 }, v.zoom * factor, size))
+    }
+
+    // Each map starts fully visible
+    useEffect(() => { setView(INITIAL_VIEW) }, [currentMap?.id])
+
+    // Center of what is visible right now, in map % (new items appear there)
+    const visibleCenter = () => {
+        const size = frameSize() || 1
+        return {
+            x: ((size / 2 - view.x) / view.zoom) / size * 100,
+            y: ((size / 2 - view.y) / view.zoom) / size * 100
+        }
+    }
+
+    const handlePanStart = (e) => {
+        if (e.button !== 0 || view.zoom === 1) return
+        const start = { x: e.clientX, y: e.clientY, view }
+        setIsPanning(true)
+
+        const handleMove = (ev) => {
+            const size = frameSize()
+            setView(clampView({
+                zoom: start.view.zoom,
+                x: start.view.x + ev.clientX - start.x,
+                y: start.view.y + ev.clientY - start.y
+            }, size))
+        }
+        const handleUp = () => {
+            window.removeEventListener('pointermove', handleMove)
+            window.removeEventListener('pointerup', handleUp)
+            window.removeEventListener('pointercancel', handleUp)
+            setIsPanning(false)
+        }
+        window.addEventListener('pointermove', handleMove)
+        window.addEventListener('pointerup', handleUp)
+        window.addEventListener('pointercancel', handleUp)
+    }
 
     const selectedAgent = agents.find(agent => agent.id === selectedAgentId)
     const selectedItem = placedItems.find(item => item.id === selectedItemId && item.type === 'agent')
@@ -84,8 +154,8 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
                 skillId: skill.id,
                 ownerId: agentItem.id,
                 side: agentItem.side,
-                x: clamp(agentItem.x + Math.cos(angle) * 7),
-                y: clamp(agentItem.y + Math.sin(angle) * 7),
+                x: clamp(agentItem.x + Math.cos(angle) * 7 / view.zoom),
+                y: clamp(agentItem.y + Math.sin(angle) * 7 / view.zoom),
                 rotation: 0
             }]
         })
@@ -107,15 +177,18 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
         }
     }, [selectedItemId])
 
-    // New items spawn in a small spiral around the center so they don't stack on top of each other
+    // New items spawn in a small spiral around the center of the visible area
+    // so they don't stack on top of each other
     const addItem = (item) => {
+        const center = visibleCenter()
+        const zoom = view.zoom
         setPlacedItems(prev => {
             const angle = prev.length * 1.2
-            const radius = prev.length === 0 ? 0 : Math.min(6 + prev.length * 1.5, 25)
+            const radius = prev.length === 0 ? 0 : Math.min(6 + prev.length * 1.5, 25) / zoom
             return [...prev, {
                 id: createId(),
-                x: 50 + Math.cos(angle) * radius,
-                y: 50 + Math.sin(angle) * radius,
+                x: clamp(center.x + Math.cos(angle) * radius),
+                y: clamp(center.y + Math.sin(angle) * radius),
                 rotation: 0,
                 ...item
             }]
@@ -170,6 +243,7 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
     const handlePointerDown = (e, item) => {
         if (e.button !== 0 || !mapRef.current) return
         e.preventDefault()
+        e.stopPropagation() // dragging an item must not pan the map
         stopDragRef.current?.()
 
         const start = getMapPosition(e.clientX, e.clientY)
@@ -221,39 +295,119 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
     // Remove any pending window listeners if the component unmounts mid-drag (e.g. reset)
     useEffect(() => () => stopDragRef.current?.(), [])
 
-    // Mouse wheel over a skill rotates it. React's onWheel is passive, so a native
-    // listener is needed to stop the page from scrolling at the same time.
+    // Mouse wheel over a skill rotates it; anywhere else on the map it zooms toward the
+    // cursor. React's onWheel is passive, so a native listener is needed to stop the
+    // page from scrolling at the same time.
     useEffect(() => {
-        const map = mapRef.current
-        if (!map) return
+        const frame = viewportRef.current
+        if (!frame) return
 
         const handleWheel = (e) => {
-            const target = e.target.closest('[data-rotatable="true"]')
-            if (!target) return
+            if (e.target.closest('[data-keep-selection]')) return // let the agent menu scroll
             e.preventDefault()
-            const step = e.deltaY > 0 ? ROTATION_STEP : -ROTATION_STEP
-            const id = target.dataset.id
-            setPlacedItems(prev => prev.map(s => s.id === id ? { ...s, rotation: (s.rotation + step + 360) % 360 } : s))
+
+            const target = e.target.closest('[data-rotatable="true"]')
+            if (target) {
+                const step = e.deltaY > 0 ? ROTATION_STEP : -ROTATION_STEP
+                const id = target.dataset.id
+                setPlacedItems(prev => prev.map(s => s.id === id ? { ...s, rotation: (s.rotation + step + 360) % 360 } : s))
+                return
+            }
+
+            const rect = frame.getBoundingClientRect()
+            const point = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+            const factor = Math.exp(-e.deltaY * WHEEL_ZOOM_SPEED)
+            setView(v => zoomAt(v, point, v.zoom * factor, rect.width))
         }
 
-        map.addEventListener('wheel', handleWheel, { passive: false })
-        return () => map.removeEventListener('wheel', handleWheel)
+        frame.addEventListener('wheel', handleWheel, { passive: false })
+        return () => frame.removeEventListener('wheel', handleWheel)
     }, [setPlacedItems])
+
+    // Keep the pan valid when the frame is resized (window or orientation change)
+    useEffect(() => {
+        const handleResize = () => setView(v => clampView(v, frameSize()))
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
 
     return (
         <>
-            <MapContainer ref={mapRef}>
-                {currentMap && (
-                    <>
-                        <MapImage
-                            src={currentMap.img}
-                            alt={`Mapa ${currentMap.name}`}
-                            draggable={false}
-                            style={{ transform: `translate(-50%, -50%) rotate(${mapRotation}deg)` }}
+            <MapContainer ref={viewportRef} $isZoomed={view.zoom > 1}>
+                <MapContent
+                    ref={mapRef}
+                    $canPan={view.zoom > 1}
+                    $isPanning={isPanning}
+                    style={{
+                        transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+                        '--inv-zoom': 1 / view.zoom
+                    }}
+                    onPointerDown={handlePanStart}
+                >
+                    {currentMap && (
+                        <>
+                            <MapImage
+                                src={currentMap.img}
+                                alt={`Mapa ${currentMap.name}`}
+                                draggable={false}
+                                style={{ transform: `translate(-50%, -50%) rotate(${mapRotation}deg)` }}
+                            />
+                            <MapCallouts callouts={currentMap.callouts} rotation={mapRotation} showRegions={showRegions} />
+                        </>
+                    )}
+
+                    {placedItems.map((item) => (
+                        <DraggableItem
+                            key={item.id}
+                            data-id={item.id}
+                            data-rotatable={item.type === 'skill'}
+                            $isDragging={draggingId === item.id}
+                            $isAgent={item.type === 'agent'}
+                            $side={item.side}
+                            style={{ left: `${item.x}%`, top: `${item.y}%`, '--rotation': `${item.rotation}deg` }}
+                            onPointerDown={(e) => handlePointerDown(e, item)}
+                            onDoubleClick={() => handleRemoveItem(item.id)}
+                            onContextMenu={(e) => { e.preventDefault(); handleRemoveItem(item.id) }}
+                            title={item.type === 'skill'
+                                ? `${item.name} · arraste para mover · rodinha do mouse para girar · duplo clique para remover`
+                                : `${item.name}${item.weapon ? ` (${item.weapon.name})` : ''} · clique para abrir o menu · arraste para mover`}
+                        >
+                            {item.type === 'agent' ? (
+                                <>
+                                    <PlacedAgentIcon $side={item.side} $isSelected={selectedItemId === item.id}>
+                                        <img src={item.img} alt={item.name} draggable={false} />
+                                    </PlacedAgentIcon>
+                                    {item.weapon && (
+                                        <WeaponBadge $side={item.side} $isAbility={item.weapon.isWeapon}>
+                                            <img src={item.weapon.img} alt={item.weapon.name} draggable={false} />
+                                        </WeaponBadge>
+                                    )}
+                                </>
+                            ) : (
+                                <img src={item.img} alt={item.name} draggable={false} />
+                            )}
+                        </DraggableItem>
+                    ))}
+
+                    {selectedItem && draggingId !== selectedItem.id && (
+                        <AgentPopover
+                            item={selectedItem}
+                            agent={agents.find(agent => agent.id === selectedItem.agentId)}
+                            weapons={weapons}
+                            onSideChange={(side) => {
+                                // The agent's own skills follow its side color
+                                setPlacedItems(prev => prev.map(s =>
+                                    s.id === selectedItem.id || s.ownerId === selectedItem.id ? { ...s, side } : s))
+                            }}
+                            onAddSkill={handleAddSkillNearAgent}
+                            onWeaponSelect={(weapon) => updateSelectedItem({ weapon })}
+                            onShowAllWeapons={() => setShowAllWeapons(true)}
+                            onRemove={() => { handleRemoveItem(selectedItem.id); selectItem(null) }}
+                            onClose={() => selectItem(null)}
                         />
-                        <MapCallouts callouts={currentMap.callouts} rotation={mapRotation} showRegions={showRegions} />
-                    </>
-                )}
+                    )}
+
+                </MapContent>
 
                 <MapToolbar onPointerDown={(e) => e.stopPropagation()}>
                     <button onClick={onRotateMap} title="Girar o mapa 90° (os itens giram junto)">⟳ Girar</button>
@@ -264,58 +418,13 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
                     >
                         {showRegions ? 'Ocultar nomes' : 'Mostrar nomes'}
                     </button>
+                    <button onClick={() => zoomBy(1 / BUTTON_ZOOM_STEP)} disabled={view.zoom <= MIN_ZOOM} title="Diminuir zoom">−</button>
+                    <ZoomLevel>{Math.round(view.zoom * 100)}%</ZoomLevel>
+                    <button onClick={() => zoomBy(BUTTON_ZOOM_STEP)} disabled={view.zoom >= MAX_ZOOM} title="Aumentar zoom (ou use a rodinha do mouse)">+</button>
+                    {view.zoom > 1 && (
+                        <button onClick={() => setView(INITIAL_VIEW)} title="Ver o mapa inteiro">Ajustar</button>
+                    )}
                 </MapToolbar>
-
-                {placedItems.map((item) => (
-                    <DraggableItem
-                        key={item.id}
-                        data-id={item.id}
-                        data-rotatable={item.type === 'skill'}
-                        $isDragging={draggingId === item.id}
-                        $isAgent={item.type === 'agent'}
-                        $side={item.side}
-                        style={{ left: `${item.x}%`, top: `${item.y}%`, '--rotation': `${item.rotation}deg` }}
-                        onPointerDown={(e) => handlePointerDown(e, item)}
-                        onDoubleClick={() => handleRemoveItem(item.id)}
-                        onContextMenu={(e) => { e.preventDefault(); handleRemoveItem(item.id) }}
-                        title={item.type === 'skill'
-                            ? `${item.name} · arraste para mover · rodinha do mouse para girar · duplo clique para remover`
-                            : `${item.name}${item.weapon ? ` (${item.weapon.name})` : ''} · clique para abrir o menu · arraste para mover`}
-                    >
-                        {item.type === 'agent' ? (
-                            <>
-                                <PlacedAgentIcon $side={item.side} $isSelected={selectedItemId === item.id}>
-                                    <img src={item.img} alt={item.name} draggable={false} />
-                                </PlacedAgentIcon>
-                                {item.weapon && (
-                                    <WeaponBadge $side={item.side} $isAbility={item.weapon.isWeapon}>
-                                        <img src={item.weapon.img} alt={item.weapon.name} draggable={false} />
-                                    </WeaponBadge>
-                                )}
-                            </>
-                        ) : (
-                            <img src={item.img} alt={item.name} draggable={false} />
-                        )}
-                    </DraggableItem>
-                ))}
-
-                {selectedItem && draggingId !== selectedItem.id && (
-                    <AgentPopover
-                        item={selectedItem}
-                        agent={agents.find(agent => agent.id === selectedItem.agentId)}
-                        weapons={weapons}
-                        onSideChange={(side) => {
-                            // The agent's own skills follow its side color
-                            setPlacedItems(prev => prev.map(s =>
-                                s.id === selectedItem.id || s.ownerId === selectedItem.id ? { ...s, side } : s))
-                        }}
-                        onAddSkill={handleAddSkillNearAgent}
-                        onWeaponSelect={(weapon) => updateSelectedItem({ weapon })}
-                        onShowAllWeapons={() => setShowAllWeapons(true)}
-                        onRemove={() => { handleRemoveItem(selectedItem.id); selectItem(null) }}
-                        onClose={() => selectItem(null)}
-                    />
-                )}
 
                 <DeleteZone ref={deleteZoneRef} $isVisible={draggingId !== null} $isActive={isOverDelete}>
                     Solte aqui para remover

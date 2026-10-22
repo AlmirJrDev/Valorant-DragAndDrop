@@ -13,10 +13,15 @@ export const createId = () => `${Date.now()}-${Math.random().toString(36).slice(
 
 const round = (value) => Math.round(value * 10) / 10
 
-// Item format: [type, agentId | skillId, x, y, rotation, weaponId?]
-// "o" (map orientation) and the weapon id were added later and are optional,
-// so links created before them still open.
+// Item format: [type, agentId | skillId, x, y, rotation, weaponId?, side?, ownerIndex?]
+// side is "a" (attack) or "d" (defense); ownerIndex links a skill to the agent it was
+// placed from. "o" (map orientation) and every field after rotation were added later
+// and are optional, so links created before them still open.
+const SIDE_CODES = { attack: "a", defense: "d" }
+const SIDES_BY_CODE = { a: "attack", d: "defense" }
+
 function serialize({ mapId, mapRotation, items }) {
+    const indexById = new Map(items.map((item, index) => [item.id, index]))
     return {
         v: VERSION,
         m: mapId,
@@ -29,8 +34,14 @@ function serialize({ mapId, mapRotation, items }) {
                 round(item.y),
                 item.rotation || 0
             ]
-            if (item.weapon) entry.push(item.weapon.id)
-            return entry
+            const extra = [
+                item.weapon?.id ?? null,
+                SIDE_CODES[item.side] ?? null,
+                indexById.get(item.ownerId) ?? null
+            ]
+            // Drop trailing empty fields to keep links short
+            while (extra.length && extra[extra.length - 1] === null) extra.pop()
+            return [...entry, ...extra]
         })
     }
 }
@@ -42,19 +53,30 @@ function deserialize(data, agents, weapons) {
     const skillById = new Map(agents.flatMap(agent => agent.skills.map(skill => [skill.id, { skill, agent }])))
     const weaponById = new Map(weapons.map(weapon => [weapon.id, weapon]))
 
-    const items = data.i.flatMap(([type, ref, x, y, rotation, weaponId]) => {
-        const base = { id: createId(), x: Number(x) || 50, y: Number(y) || 50, rotation: Number(rotation) || 0 }
+    // Ids are created up front so skills can point to their owner agent by index
+    const ids = data.i.map(() => createId())
+
+    const items = data.i.flatMap(([type, ref, x, y, rotation, weaponId, sideCode, ownerIndex], index) => {
+        const base = {
+            id: ids[index],
+            x: Number(x) || 50,
+            y: Number(y) || 50,
+            rotation: Number(rotation) || 0,
+            side: SIDES_BY_CODE[sideCode]
+        }
         if (type === "a" && agentById.has(ref)) {
             const agent = agentById.get(ref)
             // The weapon can also be one of the agent's own abilities (e.g. Jett's knives)
             const weapon = weaponById.get(weaponId)
                 ?? agent.skills.find(skill => skill.isWeapon && skill.id === weaponId)
                 ?? null
-            return [{ ...base, type: "agent", img: agent.icon, name: agent.name, agentId: agent.id, weapon }]
+            // Agents saved before sides existed default to attack
+            return [{ ...base, side: base.side ?? "attack", type: "agent", img: agent.icon, name: agent.name, agentId: agent.id, weapon }]
         }
         if (type === "s" && skillById.has(ref)) {
             const { skill, agent } = skillById.get(ref)
-            return [{ ...base, type: "skill", img: skill.img, name: skill.name, agentId: agent.id, skillId: skill.id }]
+            const ownerId = Number.isInteger(ownerIndex) ? ids[ownerIndex] : undefined
+            return [{ ...base, type: "skill", img: skill.img, name: skill.name, agentId: agent.id, skillId: skill.id, ownerId }]
         }
         // Agent or ability no longer exists in the game data: skip it
         return []

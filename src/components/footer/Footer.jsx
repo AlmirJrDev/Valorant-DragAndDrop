@@ -20,9 +20,10 @@ import {
     EmptyMessage,
     RoleGroup,
     MapToolbar,
-    WeaponTag
+    WeaponBadge
 } from "./footer.js"
 
+import { AgentPopover } from "./AgentPopover.jsx"
 import { MapCallouts } from "./MapCallouts.jsx"
 import { WeaponPicker } from "./WeaponPicker.jsx"
 import { createId } from "../../strategy.js"
@@ -45,7 +46,8 @@ const groupByRole = (agents) => agents.reduce((groups, agent) => {
 // placedItems (agents or skills on the map) live in App so they can be saved and shared
 export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, placedItems, setPlacedItems }) {
     const [selectedAgentId, setSelectedAgentId] = useState(null)
-    const [selectedItemId, setSelectedItemId] = useState(null) // agent on the map whose weapon is being picked
+    const [selectedItemId, setSelectedItemId] = useState(null) // agent on the map with its menu open
+    const [showAllWeapons, setShowAllWeapons] = useState(false) // full weapon list in the footer
     const [showRegions, setShowRegions] = useState(true)
     const [activeTab, setActiveTab] = useState('agents') // 'agents' or 'skills'
     const [draggingId, setDraggingId] = useState(null)
@@ -58,9 +60,52 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
     const selectedItem = placedItems.find(item => item.id === selectedItemId && item.type === 'agent')
     const roleGroups = groupByRole(agents)
 
-    const handleWeaponSelect = (weapon) => {
-        setPlacedItems(prev => prev.map(item => item.id === selectedItemId ? { ...item, weapon } : item))
+    const updateSelectedItem = (changes) => {
+        setPlacedItems(prev => prev.map(item => item.id === selectedItemId ? { ...item, ...changes } : item))
     }
+
+    const selectItem = (itemId) => {
+        setSelectedItemId(itemId)
+        setShowAllWeapons(false)
+    }
+
+    // Skills added from an agent's menu go around that agent and take its side color
+    const handleAddSkillNearAgent = (skill) => {
+        const agentItem = selectedItem
+        setPlacedItems(prev => {
+            const count = prev.filter(s => s.type === 'skill' && s.ownerId === agentItem.id).length
+            const angle = (count * 60 - 30) * Math.PI / 180
+            return [...prev, {
+                id: createId(),
+                type: 'skill',
+                img: skill.img,
+                name: skill.name,
+                agentId: agentItem.agentId,
+                skillId: skill.id,
+                ownerId: agentItem.id,
+                side: agentItem.side,
+                x: clamp(agentItem.x + Math.cos(angle) * 7),
+                y: clamp(agentItem.y + Math.sin(angle) * 7),
+                rotation: 0
+            }]
+        })
+    }
+
+    // Close the agent menu when clicking anywhere outside it (or the weapon list)
+    useEffect(() => {
+        if (!selectedItemId) return
+        const handleOutside = (e) => {
+            if (e.target.closest('[data-keep-selection]') || e.target.closest(`[data-id="${selectedItemId}"]`)) return
+            selectItem(null)
+        }
+        const handleKey = (e) => { if (e.key === 'Escape') selectItem(null) }
+        document.addEventListener('pointerdown', handleOutside)
+        document.addEventListener('keydown', handleKey)
+        return () => {
+            document.removeEventListener('pointerdown', handleOutside)
+            document.removeEventListener('keydown', handleKey)
+        }
+    }, [selectedItemId])
 
     // New items spawn in a small spiral around the center so they don't stack on top of each other
     const addItem = (item) => {
@@ -79,7 +124,7 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
 
     const handleAgentClick = (agent) => {
         if (activeTab === 'agents') {
-            addItem({ img: agent.icon, type: 'agent', name: agent.name, agentId: agent.id })
+            addItem({ img: agent.icon, type: 'agent', name: agent.name, agentId: agent.id, side: 'attack' })
         } else {
             // Show skills panel
             setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id)
@@ -159,8 +204,9 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
             if (overDelete) {
                 setPlacedItems(prev => prev.filter(s => s.id !== item.id))
             } else if (!moved && item.type === 'agent') {
-                // A simple click on an agent opens (or closes) its weapon picker
+                // A simple click on an agent opens (or closes) its menu
                 setSelectedItemId(current => current === item.id ? null : item.id)
+                setShowAllWeapons(false)
             }
             stopDrag()
         }
@@ -227,23 +273,24 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
                         data-rotatable={item.type === 'skill'}
                         $isDragging={draggingId === item.id}
                         $isAgent={item.type === 'agent'}
+                        $side={item.side}
                         style={{ left: `${item.x}%`, top: `${item.y}%`, '--rotation': `${item.rotation}deg` }}
                         onPointerDown={(e) => handlePointerDown(e, item)}
                         onDoubleClick={() => handleRemoveItem(item.id)}
                         onContextMenu={(e) => { e.preventDefault(); handleRemoveItem(item.id) }}
                         title={item.type === 'skill'
                             ? `${item.name} · arraste para mover · rodinha do mouse para girar · duplo clique para remover`
-                            : `${item.name}${item.weapon ? ` (${item.weapon.name})` : ''} · clique para escolher a arma · arraste para mover · duplo clique para remover`}
+                            : `${item.name}${item.weapon ? ` (${item.weapon.name})` : ''} · clique para abrir o menu · arraste para mover`}
                     >
                         {item.type === 'agent' ? (
                             <>
-                                <PlacedAgentIcon $isSelected={selectedItemId === item.id}>
+                                <PlacedAgentIcon $side={item.side} $isSelected={selectedItemId === item.id}>
                                     <img src={item.img} alt={item.name} draggable={false} />
                                 </PlacedAgentIcon>
                                 {item.weapon && (
-                                    <WeaponTag $isAbility={item.weapon.isWeapon}>
+                                    <WeaponBadge $side={item.side} $isAbility={item.weapon.isWeapon}>
                                         <img src={item.weapon.img} alt={item.weapon.name} draggable={false} />
-                                    </WeaponTag>
+                                    </WeaponBadge>
                                 )}
                             </>
                         ) : (
@@ -252,19 +299,37 @@ export function Footer({ agents, weapons, currentMap, mapRotation, onRotateMap, 
                     </DraggableItem>
                 ))}
 
+                {selectedItem && draggingId !== selectedItem.id && (
+                    <AgentPopover
+                        item={selectedItem}
+                        agent={agents.find(agent => agent.id === selectedItem.agentId)}
+                        weapons={weapons}
+                        onSideChange={(side) => {
+                            // The agent's own skills follow its side color
+                            setPlacedItems(prev => prev.map(s =>
+                                s.id === selectedItem.id || s.ownerId === selectedItem.id ? { ...s, side } : s))
+                        }}
+                        onAddSkill={handleAddSkillNearAgent}
+                        onWeaponSelect={(weapon) => updateSelectedItem({ weapon })}
+                        onShowAllWeapons={() => setShowAllWeapons(true)}
+                        onRemove={() => { handleRemoveItem(selectedItem.id); selectItem(null) }}
+                        onClose={() => selectItem(null)}
+                    />
+                )}
+
                 <DeleteZone ref={deleteZoneRef} $isVisible={draggingId !== null} $isActive={isOverDelete}>
                     Solte aqui para remover
                 </DeleteZone>
             </MapContainer>
 
             <FooterBar>
-                {selectedItem && (
+                {selectedItem && showAllWeapons && (
                     <WeaponPicker
                         item={selectedItem}
                         agent={agents.find(agent => agent.id === selectedItem.agentId)}
                         weapons={weapons}
-                        onSelect={handleWeaponSelect}
-                        onClose={() => setSelectedItemId(null)}
+                        onSelect={(weapon) => updateSelectedItem({ weapon })}
+                        onClose={() => setShowAllWeapons(false)}
                     />
                 )}
 

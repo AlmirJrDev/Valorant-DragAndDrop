@@ -19,7 +19,7 @@ export function WeaponPicker({ item, agent, weapons, onSelect, onClose }) {
     }, [item.id])
 
     return (
-        <SkillsPanel $isVisible ref={panelRef}>
+        <SkillsPanel $isVisible ref={panelRef} data-keep-selection>
             <SkillsPanelHeader>
                 <img src={agent?.icon ?? item.img} alt={item.name} />
                 <span style={{ textTransform: "none" }}>Arma de {item.name}</span>

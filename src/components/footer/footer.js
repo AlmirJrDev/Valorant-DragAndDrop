@@ -1,5 +1,8 @@
 import styled from "styled-components";
 
+export const SIDE_COLORS = { attack: '#ff4655', defense: '#17a29a' }
+const sideColor = (side, fallback = SIDE_COLORS.attack) => SIDE_COLORS[side] ?? fallback
+
 export const FooterBar = styled.footer`
     background: #232323;
     padding: 1rem;
@@ -224,7 +227,7 @@ export const MapContainer = styled.div`
     margin: 0 auto;
     aspect-ratio: 1 / 1;
     background: #252525;
-    overflow: hidden;
+    overflow: visible;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     flex-shrink: 0;
@@ -274,7 +277,7 @@ export const DraggableItem = styled.div`
         padding: 4px;
         border-radius: 50%;
         background: rgba(26, 26, 26, 0.85);
-        border: 1px solid rgba(255, 255, 255, 0.25);
+        border: ${props => props.$side ? `2px solid ${sideColor(props.$side)}` : '1px solid rgba(255, 255, 255, 0.25)'};
 
         @media (max-width: 768px) {
             width: 26px;
@@ -293,8 +296,8 @@ export const DraggableItem = styled.div`
 
 export const PlacedAgentIcon = styled.div`
     background: rgba(26, 26, 26, 0.9);
-    border: 2px solid ${props => props.$isSelected ? '#ece8e1' : '#ff4655'};
-    box-shadow: ${props => props.$isSelected ? '0 0 0 3px rgba(236, 232, 225, 0.35)' : 'none'};
+    border: 2px solid ${props => sideColor(props.$side)};
+    box-shadow: ${props => props.$isSelected ? '0 0 0 3px #ece8e1' : 'none'};
     border-radius: 50%;
     padding: 4px;
     display: flex;
@@ -361,20 +364,26 @@ export const SectionTitle = styled.h3`
     padding-left: 0.25rem;
 `
 
-export const WeaponTag = styled.div`
+// Small badge on the agent's bottom-right corner with the gun or weapon ability
+export const WeaponBadge = styled.div`
     position: absolute;
-    top: calc(100% + 2px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(26, 26, 26, 0.85);
-    border-radius: 4px;
-    padding: 2px 4px;
+    right: -10px;
+    bottom: -6px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    border: 2px solid ${props => sideColor(props.$side)};
     display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
 
     img {
-        width: ${props => props.$isAbility ? "16px" : "44px"};
-        height: ${props => props.$isAbility ? "16px" : "14px"};
+        width: ${props => props.$isAbility ? '14px' : '18px'};
+        height: 14px;
         object-fit: contain;
+        filter: none;
     }
 `
 
@@ -505,5 +514,148 @@ export const WeaponButton = styled.button`
     small {
         font-size: 0.6rem;
         color: #888;
+    }
+`
+
+export const Popover = styled.div`
+    position: absolute;
+    z-index: 1100;
+    width: 290px;
+    max-width: 90vw;
+    transform: ${props => props.$openBelow ? 'translate(-50%, 34px)' : 'translate(-50%, calc(-100% - 34px))'};
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    padding: 0.6rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    cursor: default;
+
+    .remove {
+        width: 100%;
+        background: transparent;
+        border: 1px solid #3a3a3a;
+        color: #aaa;
+        padding: 0.3rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.7rem;
+
+        &:hover {
+            border-color: #ff4655;
+            color: #ff4655;
+        }
+    }
+`
+
+export const PopoverHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    strong {
+        color: #fff;
+        font-size: 0.9rem;
+    }
+
+    .close {
+        margin-left: auto;
+        background: none;
+        border: none;
+        color: #888;
+        font-size: 1.2rem;
+        line-height: 1;
+        cursor: pointer;
+
+        &:hover {
+            color: #fff;
+        }
+    }
+`
+
+export const SideToggle = styled.div`
+    display: flex;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    overflow: hidden;
+
+    button {
+        background: transparent;
+        border: none;
+        color: #aaa;
+        padding: 0.25rem 0.6rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .attack.active {
+        background: ${SIDE_COLORS.attack};
+        color: #fff;
+    }
+
+    .defense.active {
+        background: ${SIDE_COLORS.defense};
+        color: #fff;
+    }
+`
+
+export const PopoverSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+
+    > span {
+        color: #888;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+`
+
+export const PopoverRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+`
+
+export const PopoverIconButton = styled.button`
+    position: relative;
+    height: 36px;
+    min-width: ${props => props.$isWide ? '52px' : '36px'};
+    padding: 4px;
+    background: ${props => props.$isSelected ? 'rgba(255, 70, 85, 0.2)' : '#2a2a2a'};
+    border: 1px solid ${props => props.$isSelected ? '#ff4655' : '#3a3a3a'};
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ccc;
+
+    &:hover {
+        border-color: #ff4655;
+    }
+
+    img {
+        width: ${props => props.$isWide ? '44px' : '24px'};
+        height: 24px;
+        object-fit: contain;
+    }
+
+    kbd {
+        position: absolute;
+        bottom: 1px;
+        right: 3px;
+        font-family: inherit;
+        font-size: 0.55rem;
+        font-weight: 700;
+        color: #ff4655;
+    }
+
+    small {
+        font-size: 0.7rem;
     }
 `

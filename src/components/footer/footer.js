@@ -53,6 +53,7 @@ export const AgentsGrid = styled.div`
 `
 
 export const AgentButton = styled.button`
+    opacity: ${props => props.$isDisabled ? 0.35 : 1};
     background: ${props => props.$isSelected ? '#ff4655' : '#1a1a1a'};
     border: 2px solid ${props => props.$isSelected ? '#ff4655' : '#3a3a3a'};
     border-radius: 8px;
@@ -208,7 +209,8 @@ export const MapImage = styled.img`
 
 export const DraggableItem = styled.div`
     position: absolute;
-    cursor: grab;
+    transform: translate(-50%, -50%) ${props => props.$isDragging ? 'scale(1.15)' : ''};
+    cursor: ${props => props.$isDragging ? 'grabbing' : 'grab'};
     z-index: ${props => props.$isDragging ? 1000 : props.$isAgent ? 20 : 10};
     touch-action: none;
     user-select: none;
@@ -231,7 +233,7 @@ export const DraggableItem = styled.div`
     }
 
     &:hover {
-        transform: translate(-50%, -50%) scale(1.1);
+        transform: translate(-50%, -50%) scale(${props => props.$isDragging ? 1.15 : 1.1});
     }
 
     &:hover img {
@@ -263,7 +265,8 @@ export const DeleteZone = styled.div`
     position: absolute;
     bottom: 10px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) scale(${props => props.$isActive ? 1.08 : 1});
+    white-space: nowrap;
     background: ${props => props.$isActive ? '#ff4655' : 'rgba(255, 70, 85, 0.3)'};
     border: 2px dashed #ff4655;
     border-radius: 8px;
@@ -272,9 +275,30 @@ export const DeleteZone = styled.div`
     font-size: 0.75rem;
     font-weight: 500;
     transition: all 0.2s ease;
-    z-index: 5;
+    z-index: 999;
     pointer-events: none;
     opacity: ${props => props.$isVisible ? 1 : 0};
+`
+
+export const ClearButton = styled.button`
+    margin-left: auto;
+    background: #ff4655;
+    border: none;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.2s ease;
+
+    &:hover {
+        background: #e63e4d;
+    }
+`
+
+export const EmptyMessage = styled.p`
+    color: #888;
+    font-size: 0.85rem;
 `
 
 export const SectionTitle = styled.h3`

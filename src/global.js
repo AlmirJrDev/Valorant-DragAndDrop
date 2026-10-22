@@ -1,4 +1,4 @@
-import { createGlobalStyle } from "styled-components";
+import styled, { createGlobalStyle } from "styled-components";
 
 export const GlobalStyles = createGlobalStyle`
     *, *::before, *::after {
@@ -58,5 +58,25 @@ export const GlobalStyles = createGlobalStyle`
 
     ::-webkit-scrollbar-thumb:hover {
         background: #4a4a4a;
+    }
+`
+
+export const StatusScreen = styled.div`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: #ccc;
+    min-height: 100vh;
+
+    button {
+        background: #ff4655;
+        border: none;
+        color: #fff;
+        padding: 0.5rem 1.25rem;
+        border-radius: 6px;
+        cursor: pointer;
     }
 `

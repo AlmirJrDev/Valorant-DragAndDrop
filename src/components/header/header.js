@@ -26,6 +26,8 @@ export const HeaderBar = styled.header`
 `
 
 export const NavBar = styled.nav`
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 0.5rem;

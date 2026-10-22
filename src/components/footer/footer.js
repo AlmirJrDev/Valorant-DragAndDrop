@@ -43,17 +43,35 @@ export const Tab = styled.button`
 export const AgentsGrid = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 1rem 1.5rem;
     justify-content: center;
     padding: 0.5rem;
 
     @media (max-width: 768px) {
+        gap: 0.75rem;
+    }
+`
+
+export const RoleGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    > span {
+        color: #888;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    > div {
+        display: flex;
+        flex-wrap: wrap;
         gap: 6px;
     }
 `
 
 export const AgentButton = styled.button`
-    opacity: ${props => props.$isDisabled ? 0.35 : 1};
     background: ${props => props.$isSelected ? '#ff4655' : '#1a1a1a'};
     border: 2px solid ${props => props.$isSelected ? '#ff4655' : '#3a3a3a'};
     border-radius: 8px;
@@ -151,17 +169,21 @@ export const SkillButton = styled.button`
     background: #2a2a2a;
     border: 2px solid #3a3a3a;
     border-radius: 6px;
-    padding: 6px;
+    padding: 8px 6px 6px;
+    width: 84px;
     cursor: pointer;
     transition: all 0.15s ease;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    gap: 4px;
+    position: relative;
+    color: #ccc;
 
     &:hover {
         border-color: #ff4655;
         background: #353535;
-        transform: scale(1.1);
+        transform: scale(1.05);
     }
 
     &:active {
@@ -172,6 +194,26 @@ export const SkillButton = styled.button`
         width: 36px;
         height: 36px;
         object-fit: contain;
+    }
+
+    kbd {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        font-family: inherit;
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #ff4655;
+    }
+
+    small {
+        font-size: 0.65rem;
+        line-height: 1.2;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
     }
 `
 
@@ -209,7 +251,7 @@ export const MapImage = styled.img`
 
 export const DraggableItem = styled.div`
     position: absolute;
-    transform: translate(-50%, -50%) ${props => props.$isDragging ? 'scale(1.15)' : ''};
+    transform: translate(-50%, -50%) rotate(var(--rotation, 0deg)) ${props => props.$isDragging ? 'scale(1.15)' : ''};
     cursor: ${props => props.$isDragging ? 'grabbing' : 'grab'};
     z-index: ${props => props.$isDragging ? 1000 : props.$isAgent ? 20 : 10};
     touch-action: none;
@@ -221,19 +263,25 @@ export const DraggableItem = styled.div`
     }
 
     img {
-        width: ${props => props.$isAgent ? '36px' : '28px'};
-        height: ${props => props.$isAgent ? '36px' : '28px'};
+        width: ${props => props.$isAgent ? '36px' : '30px'};
+        height: ${props => props.$isAgent ? '36px' : '30px'};
         pointer-events: none;
         filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+        ${props => !props.$isAgent && `
+            padding: 4px;
+            border-radius: 50%;
+            background: rgba(26, 26, 26, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        `}
 
         @media (max-width: 768px) {
-            width: ${props => props.$isAgent ? '32px' : '24px'};
-            height: ${props => props.$isAgent ? '32px' : '24px'};
+            width: ${props => props.$isAgent ? '32px' : '26px'};
+            height: ${props => props.$isAgent ? '32px' : '26px'};
         }
     }
 
     &:hover {
-        transform: translate(-50%, -50%) scale(${props => props.$isDragging ? 1.15 : 1.1});
+        transform: translate(-50%, -50%) rotate(var(--rotation, 0deg)) scale(${props => props.$isDragging ? 1.15 : 1.1});
     }
 
     &:hover img {

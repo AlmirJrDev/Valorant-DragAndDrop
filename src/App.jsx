@@ -51,6 +51,9 @@ function Board({ agents, maps, weapons }) {
   const rotation = mapRotation ?? selectedMap.defaultRotation;
 
   const handleMapChange = (map) => {
+    // Clicking the map that is already open must not reset its rotation: the items
+    // were rotated together with it and would end up in the wrong places
+    if (map.id === selectedMap.id) return;
     setMapId(map.id);
     setMapRotation(null); // each map starts with attackers at the bottom
   };
